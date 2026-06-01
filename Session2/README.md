@@ -329,7 +329,7 @@ var registrationUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 ### 6-1. ウェブサイトにアクセスする
 
 ```
-https://dkonfkxt9sp21.cloudfront.net/
+https://xxxxxxxxxxxx.cloudfront.net/
 ```
 
 ### 6-2. 登録してみる
@@ -376,4 +376,4 @@ https://dkonfkxt9sp21.cloudfront.net/
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://dkonfkxt9sp21.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |

@@ -38,8 +38,8 @@ https://catalog.us-east-1.prod.workshops.aws/join?access-code=f301-06eddc-8f
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://dkonfkxt9sp21.cloudfront.net/ |
-| 会員登録確認画面（管理者向け） | http://suzuki-tetsuya-admin.s3-website-ap-northeast-1.amazonaws.com/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
+| 会員登録確認画面（管理者向け） | http://lastname-firstname-admin.s3-website-ap-northeast-1.amazonaws.com/ |
 
 > ※ 会員登録確認画面（管理者向け）は、こちらのサイトは作成しません。
 

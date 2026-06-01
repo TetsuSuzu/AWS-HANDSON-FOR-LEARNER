@@ -181,10 +181,10 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 ディストリビューション一覧に表示される **「ドメイン名」** をメモします。
 
 ```
-例: dkonfkxt9sp21.cloudfront.net
+例: xxxxxxxxxxxx.cloudfront.net
 ```
 
-このドメインを使って `https://dkonfkxt9sp21.cloudfront.net/` でアクセスできます。
+このドメインを使って `https://xxxxxxxxxxxx.cloudfront.net/` でアクセスできます。
 
 ---
 
@@ -195,13 +195,13 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 CloudFront ドメインでアクセスします（HTTPS）：
 
 ```
-https://dkonfkxt9sp21.cloudfront.net/
+https://xxxxxxxxxxxx.cloudfront.net/
 ```
 
 S3 ウェブサイトエンドポイント（HTTP）でも引き続きアクセス可能です：
 
 ```
-http://suzuki-tetsuya.s3-website-ap-northeast-1.amazonaws.com/
+http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
 ### 6-2. 各機能を確認する
@@ -258,5 +258,5 @@ http://suzuki-tetsuya.s3-website-ap-northeast-1.amazonaws.com/
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://dkonfkxt9sp21.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
 

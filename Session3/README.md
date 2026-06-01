@@ -283,7 +283,7 @@ var bedrockUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/pr
 ### 4-1. ウェブサイトにアクセスする
 
 ```
-https://dkonfkxt9sp21.cloudfront.net/
+https://xxxxxxxxxxxx.cloudfront.net/
 ```
 
 ### 4-2. AI おすすめ機能を試す
@@ -319,4 +319,4 @@ https://dkonfkxt9sp21.cloudfront.net/
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://dkonfkxt9sp21.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
