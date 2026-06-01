@@ -84,9 +84,9 @@ Lambda 関数が DynamoDB と Bedrock にアクセスできるよう、IAM ロ�
 
 | 項目 | 値 |
 |---|---|
-| ロール名 | <font color="red">fy27-lastname-firstname</font> |
+| ロール名 | <font color="red">lastname-firstname</font> |
 
-> ※ <font color="red">fy27-lastname-firstname</font> は自分の名前に置き換えてください（例：`fy27-yamada-taro`）。
+> ※ <font color="red">lastname-firstname</font> は自分の名前に置き換えてください（例：`yamada-taro`）。
 
 **「ロールを作成」** をクリック
 
@@ -134,7 +134,7 @@ Lambda はサーバーを立てずにコードを実行できるサービスで�
 | 関数名 | `users-post-function`（任意） |
 | ランタイム | **Python 3.12** |
 | アーキテクチャ | x86_64 |
-| 実行ロール | **既存のロールを使用する** → <font color="red">fy27-lastname-firstname</font> を選択 |
+| 実行ロール | **既存のロールを使用する** → <font color="red">lastname-firstname</font> を選択 |
 
 > **💡 実行ロールとは？**  
 > Lambda 関数が他の AWS サービス（DynamoDB・Bedrock など）にアクセスするための「権限証明書」です。  
@@ -319,7 +319,7 @@ var registrationUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 
 ### 5-2. S3 にアップロードする
 
-1. Session1 で作成した S3 バケット（<font color="red">fy27-lastname-firstname</font>）を開く
+1. Session1 で作成した S3 バケット（<font color="red">lastname-firstname</font>）を開く
 2. **「アップロード」** をクリック → 書き換えた `index.html` を選択 → **「アップロード」** をクリック
 
 ---

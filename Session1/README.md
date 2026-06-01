@@ -50,7 +50,7 @@
 
 | 項目 | 値 |
 |---|---|
-| バケット名 | <font color="red">fy27-lastname-firstname</font>（例：`fy27-yamada-taro`） |
+| バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`） |
 | AWS リージョン | **アジアパシフィック（東京） ap-northeast-1** |
 | オブジェクト所有者 | ACL 無効（推奨） |
 | パブリックアクセスをすべてブロック | **チェックを外す（ブロックを無効にする）** |
@@ -98,7 +98,7 @@
 > 設定後に **「バケットウェブサイトエンドポイント」** の URL が表示されます。これがウェブサイトの URL です。メモしておきましょう。
 
 ```
-例: http://fy27-lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
+例: http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
 ---
@@ -114,7 +114,7 @@
 
 ### 4-2. ポリシーを貼り付ける
 
-以下の JSON を貼り付けます（<font color="red">fy27-lastname-firstname</font> の部分を **自分のバケット名** に変更）：
+以下の JSON を貼り付けます（<font color="red">lastname-firstname</font> の部分を **自分のバケット名** に変更）：
 
 ```json
 {
@@ -125,7 +125,7 @@
             "Effect": "Allow",
             "Principal": "*",
             "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::fy27-lastname-firstname/*"
+            "Resource": "arn:aws:s3:::lastname-firstname/*"
         }
     ]
 }
@@ -150,10 +150,10 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 
 | 項目 | 値 |
 |---|---|
-| オリジンドメイン | **S3 バケット一覧には出てこないので手動入力**：<font color="red">fy27-lastname-firstname.s3-website-ap-northeast-1.amazonaws.com</font> |
+| オリジンドメイン | **S3 バケット一覧には出てこないので手動入力**：<font color="red">lastname-firstname.s3-website-ap-northeast-1.amazonaws.com</font> |
 | プロトコル | **HTTP のみ** |
 
-> ⚠️ ドロップダウンで表示される S3 バケット名（`fy27-xxx.s3.amazonaws.com`）は **選ばないこと**。  
+> ⚠️ ドロップダウンで表示される S3 バケット名（`xxx.s3.amazonaws.com`）は **選ばないこと**。  
 > 静的ウェブサイトエンドポイント（`s3-website-ap-northeast-1`）を手動で入力してください。
 
 ### 5-3. デフォルトのキャッシュビヘイビアを設定する
@@ -201,7 +201,7 @@ https://dkonfkxt9sp21.cloudfront.net/
 S3 ウェブサイトエンドポイント（HTTP）でも引き続きアクセス可能です：
 
 ```
-http://fy27-suzuki-tetsuya.s3-website-ap-northeast-1.amazonaws.com/
+http://suzuki-tetsuya.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
 ### 6-2. 各機能を確認する

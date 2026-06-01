@@ -58,17 +58,17 @@ Lambda はサーバーを立てずにコードを実行できるサービスで�
 
 | 項目 | 値 |
 |---|---|
-| 関数名 | <font color="red">fy27-lastname-firstname-b</font> |
+| 関数名 | <font color="red">lastname-firstname-b</font> |
 | ランタイム | **Python 3.12** |
-| 実行ロール | **既存のロールを使用する** → <font color="red">fy27-lastname-firstname</font> を選択 |
+| 実行ロール | **既存のロールを使用する** → <font color="red">lastname-firstname</font> を選択 |
 
-> ※ <font color="red">fy27-lastname-firstname-b</font> は自分の名前に置き換えてください（例：`fy27-yamada-taro-b`）。
+> ※ <font color="red">lastname-firstname-b</font> は自分の名前に置き換えてください（例：`yamada-taro-b`）。
 
 「関数の作成」をクリック
 
 > **💡 実行ロールとは？**  
 > Lambda 関数が他の AWS サービスにアクセスするための「権限証明書」です。  
-> Session2 で作成した <font color="red">fy27-lastname-firstname</font> ロールには `AmazonBedrockFullAccess` が付与済みのため、このロールを割り当てるだけで Bedrock の AI モデルを呼び出せるようになります。
+> Session2 で作成した <font color="red">lastname-firstname</font> ロールには `AmazonBedrockFullAccess` が付与済みのため、このロールを割り当てるだけで Bedrock の AI モデルを呼び出せるようになります。
 
 ### 1-3. コードを貼り付ける
 
@@ -174,7 +174,7 @@ API Gateway は、ブラウザからのリクエストを Lambda に橋渡しす
 | 項目 | 値 |
 |---|---|
 | 新しい API を作成 | **新しい API** |
-| API 名 | <font color="red">fy27-lastname-firstname-b</font> |
+| API 名 | <font color="red">lastname-firstname-b</font> |
 | API エンドポイントタイプ | **リージョン** |
 
 「APIを作成」をクリック
@@ -182,7 +182,7 @@ API Gateway は、ブラウザからのリクエストを Lambda に橋渡しす
 ### 2-4. リソースを作成する
 
 1. **「リソースを作成」** をクリック
-2. リソース名に <font color="red">fy27-lastname-firstname-b</font> と入力
+2. リソース名に <font color="red">lastname-firstname-b</font> と入力
 3. **「リソースを作成」** をクリック
 
 ### 2-5. POST メソッドを作成する
@@ -194,7 +194,7 @@ API Gateway は、ブラウザからのリクエストを Lambda に橋渡しす
 | メソッドタイプ | **POST** |
 | 統合タイプ | **Lambda 関数** |
 | Lambda プロキシ統合 | **オフ（チェックを外す）** |
-| Lambda 関数 | <font color="red">fy27-lastname-firstname-b</font> を選択（リージョン：ap-northeast-1） |
+| Lambda 関数 | <font color="red">lastname-firstname-b</font> を選択（リージョン：ap-northeast-1） |
 
 「メソッドを作成」をクリック
 
@@ -268,12 +268,12 @@ var bedrockUrl = "https://APIドメイン名";
 Step 2-9 でメモした URL にリソース名を加えた URL に書き換えます：
 
 ```javascript
-var bedrockUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/fy27-lastname-firstname-b";
+var bedrockUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/lastname-firstname-b";
 ```
 
 ### 3-2. S3 にアップロードする
 
-1. Session1 で作成した S3 バケット（<font color="red">fy27-lastname-firstname</font>）を開く
+1. Session1 で作成した S3 バケット（<font color="red">lastname-firstname</font>）を開く
 2. **「アップロード」** をクリック → 書き換えた `index.html` を選択 → **「アップロード」** をクリック
 
 ---
@@ -299,7 +299,7 @@ https://dkonfkxt9sp21.cloudfront.net/
 ### AI おすすめ機能が動かない
 
 - `index.html` の `var bedrockUrl` が正しい API Gateway URL になっているか確認
-- URL の末尾にリソース名（`/prod/fy27-lastname-firstname-b`）が含まれているか確認
+- URL の末尾にリソース名（`/prod/lastname-firstname-b`）が含まれているか確認
 - Lambda 関数が正しくデプロイされているか確認
 
 ### Lambda テストでエラーが出る
