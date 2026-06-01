@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JTB Web販 AWS勉強会サイト</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>JTB Web販 AWS勉強会サイト</h1>
+        <nav>
+            <ul>
+                <li><a href="#home">ホーム</a></li>
+                <li><a href="#photo1">おすすめ風景①</a></li>
+                <li><a href="#photo2">おすすめ風景②</a></li>
+                <li><a href="#signup">会員登録</a></li>
+                <li><a href="#recommendation">あなたの好きな食事は？</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="home">
+            <h2>ようこそ</h2>
+            <p>私たちのウェブサイトへようこそ。ここでは、AWSの最新のサービスと情報について、学んでいきます。</p>
+            <p>また、勉強以外にも、旅行に役立つ素敵な情報をお届けします。ぜひ、おすすめ風景を楽しんでみてください。</p>
+            <p>会員登録とあわせて、旅行先で食べたい食事や、あなたの趣味を書いてください。おすすめをご紹介します。</p>
+        </section>
+
+        <section id="photo1">
+            <h2>おすすめ風景①</h2>
+            <h2>～新潟県かぐらみつまたスキー場～</h2>
+            <img src="photo1.png" alt="おすすめ風景a">
+        </section>
+
+        <section id="photo2">
+            <h2>おすすめ風景②</h2>
+            <h2>～富津海岸から望む富士山～</h2>
+            <img src="photo2.png" alt="おすすめ風景b">
+        </section>
+
+        <section id="signup">
+            <h2>新規会員募集</h2>
+            <h3>必要事項をご記入の上、登録ボタンを押してください</h3>
+            <form id="registrationForm">
+                <label for="id">ユーザID</label>
+                <input id="id" type="text" name="id" required><br>
+
+                <label for="name">名前</label>
+                <input id="name" type="text" name="name" required><br>
+
+                <label for="email">メールアドレス</label>
+                <input id="email" type="email" name="email" required><br>
+
+                <label for="age">年齢</label>
+                <input id="age" type="number" name="age" min="0" required><br>
+
+                <label for="address">住所</label>
+                <input id="address" type="text" name="address" required><br>
+
+                <label for="tel">電話番号</label>
+                <input id="tel" type="tel" name="tel" required><br>
+
+                <p>個人情報規約に同意し、<button type="button" id="registerButton">登録</button></p>
+            </form>
+        </section>
+
+        <section id="recommendation">
+            <h2>あなたの好きな食事は？</h2>
+            <p>旅行先で食べたい料理を教えて下さい！</p>
+            <p><input type="text" id="text" size="155" placeholder="新鮮な魚を食べたい　等　入力してください。"></p>
+            <p><button id="button" type="button" class="blue-button">おすすめを表示</button></p>
+            <div id="response" style="width:100%; min-height:200px; padding:10px; background:#fff; border:1px solid #ccc; border-radius:4px; white-space:pre-wrap; line-height:1.6;"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 JTB Web販 AWS勉強会サイト. All rights reserved.</p>
+    </footer>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+    $(function() {
+
+        // ── Session2: 会員登録 ──────────────────────────────────
+        // CloudFront経由でAPI Gatewayにルーティング（/users-stage/* → Session2 API）
+        var registrationUrl = "https://APIドメイン名";
+
+        $("#registerButton").on("click", function() {
+            var requestBody = parseJson($("#registrationForm").serializeArray());
+            $.ajax({
+                type: 'POST',
+                url: registrationUrl,
+                contentType: 'application/json; charset=UTF-8',
+                dataType: 'json',
+                data: JSON.stringify(requestBody)
+            }).done(function(response) {
+                alert(response.message || "登録が完了しました！");
+                $("#registrationForm")[0].reset();
+            }).fail(function(jqXHR) {
+                var msg = "登録に失敗しました";
+                if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+                    msg += ": " + jqXHR.responseJSON.error;
+                }
+                alert(msg);
+            });
+        });
+
+        function parseJson(data) {
+            var result = {};
+            for (var i = 0; i < data.length; i++) {
+                result[data[i].name] = data[i].value;
+            }
+            return result;
+        }
+
+        // ── Session3: AIおすすめ（Bedrock） ─────────────────────
+        // CloudFront経由でAPI Gatewayにルーティング（/prod/* → Session3 API）
+        var bedrockUrl = "https://APIドメイン名";
+
+        $("#response").html("旅のプロ・JTBアドバイザーがお答えします！");
+
+        $("#button").on("click", function() {
+            $("#response").html("旅のプロ・JTBアドバイザーに問い合わせしています...");
+            $.ajax({
+                type: 'post',
+                url: bedrockUrl,
+                contentType: 'application/json',
+                dataType: 'text',
+                data: JSON.stringify({ "key1": $("#text").val() }),
+                success: function(data) {
+                    $("#response").html(marked.parse(JSON.parse(data)));
+                },
+                error: function(data) {
+                    alert("error");
+                    $("#response").html(JSON.stringify(data));
+                }
+            });
+        });
+
+    });
+    </script>
+</body>
+</html>

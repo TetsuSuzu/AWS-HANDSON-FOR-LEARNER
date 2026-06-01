@@ -1,0 +1,15 @@
+# Session0/Session1/Session2とREADMEのみをpush対象にする
+*
+!.gitignore
+!README.md
+!Session0/
+!Session0/**
+!Session1/
+!Session1/**
+!Session2/
+!Session2/**
+!Session3/
+!Session3/**
+
+# Session2の仮想環境を除外
+Session2/.venv/
