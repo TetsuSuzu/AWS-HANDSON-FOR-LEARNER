@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>JTB Web販 AWS勉強会サイト</title>
+    <title>Web販 AWS勉強会サイト</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>JTB Web販 AWS勉強会サイト</h1>
+        <h1>Web販 AWS勉強会サイト</h1>
         <nav>
             <ul>
                 <li><a href="#home">ホーム</a></li>
@@ -76,7 +76,7 @@
     </main>
 
     <footer>
-        <p>© 2025 JTB Web販 AWS勉強会サイト. All rights reserved.</p>
+        <p>© 2025 Web販 AWS勉強会サイト. All rights reserved.</p>
     </footer>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -120,10 +120,10 @@
         // CloudFront経由でAPI Gatewayにルーティング（/prod/* → Session3 API）
         var bedrockUrl = "https://APIドメイン名";
 
-        $("#response").html("旅のプロ・JTBアドバイザーがお答えします！");
+        $("#response").html("旅のプロ・アドバイザーがお答えします！");
 
         $("#button").on("click", function() {
-            $("#response").html("旅のプロ・JTBアドバイザーに問い合わせしています...");
+            $("#response").html("旅のプロ・アドバイザーに問い合わせしています...");
             $.ajax({
                 type: 'post',
                 url: bedrockUrl,

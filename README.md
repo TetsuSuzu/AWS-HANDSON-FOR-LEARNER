@@ -14,17 +14,6 @@
 > 展開後、デスクトップに `aws-handson-main` などのフォルダが作成されます。  
 > 各 Session のフォルダ（`Session1`・`Session2`・`Session3`）の中にアップロード用ファイルが入っています。
 
-### ステップ2：AWSアカウントを払い出す
-
-以下のURLをブラウザで開き、**自分のメールアドレス** を入力してください。  
-イベントコードを聞かれたら **`f301-06eddc-8f`** を入力してください。
-
-```
-https://catalog.us-east-1.prod.workshops.aws/join?access-code=f301-06eddc-8f
-```
-
-> AWSアカウントの払い出しが完了しないと、Session1以降の作業が行えません。
-
 ---
 
 バケット名・ロール名などの <font color="red">lastname-firstname</font> は **自分の名前（姓-名）** に置き換えてください。  
