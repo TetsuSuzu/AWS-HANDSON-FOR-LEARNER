@@ -1,0 +1,22 @@
+# CODEOWNERS
+# このファイルはコードの責任者を定義します。
+# PRで変更があった場合、該当する責任者が自動的にレビュアーとして追加されます。
+#
+# 書き方: <ファイルパターン>  <GitHubユーザー名 or チーム名>
+# 複数人指定する場合はスペースで区切ります。
+# 例: Session1/  @user1 @user2
+
+# リポジトリ全体の責任者（どのファイルにも一致しない場合のデフォルト）
+*  @TetsuSuzu
+
+# Session1: S3静的サイトホスティング
+Session1/  @TetsuSuzu
+
+# Session2: IAM + Lambda + DynamoDB
+Session2/  @TetsuSuzu
+
+# Session3: API Gateway + Bedrock
+Session3/  @TetsuSuzu
+
+# ドキュメント（README）
+*.md  @TetsuSuzu
