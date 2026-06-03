@@ -23,6 +23,19 @@
 
 ---
 
+## コード一覧（Gist）
+
+ハンズオンで使用するコードをGistで公開しています。コピーしてご利用ください。
+
+| Session | 内容 | リンク |
+|---|---|---|
+| Session1 | S3バケットポリシー | https://gist.github.com/TetsuSuzu/52ac3992fedf13078686a3a1001c8540 |
+| Session2 | Lambda関数（DynamoDB登録） | https://gist.github.com/TetsuSuzu/bc7e8259462a96c11dc58b75f61a58d3 |
+| Session2 | Lambdaテストイベント | https://gist.github.com/TetsuSuzu/1ff21322a9206bd40d6430cd0b7c9f28 |
+| Session3 | Lambda関数（Bedrock AI連携） | https://gist.github.com/TetsuSuzu/cac498a24fc62682afc73427c3e7412e |
+
+---
+
 ## 完成サイト一覧
 
 | サイト | URL |
