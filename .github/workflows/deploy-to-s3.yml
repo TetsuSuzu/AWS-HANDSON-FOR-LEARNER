@@ -24,6 +24,6 @@ jobs:
 
       - name: S3にデプロイ
         run: |
-          aws s3 sync Session1/ s3://YOUR-BUCKET-NAME \
+          aws s3 sync Session1/ s3://aws-learners-s3 \
             --delete \
             --exclude "*.md"

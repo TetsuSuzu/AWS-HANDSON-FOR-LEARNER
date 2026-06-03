@@ -109,14 +109,14 @@ jobs:
       # 3. S3にアップロード
       - name: S3にデプロイ
         run: |
-          aws s3 sync Session1/ s3://YOUR-BUCKET-NAME \
+          aws s3 sync Session1/ s3://aws-learners-s3 \
             --delete \
             --exclude "*.md"
 ```
 
 ### `YOUR-BUCKET-NAME` の書き換え
 
-ワークフローファイル内の `YOUR-BUCKET-NAME` を **Session1で作成したS3バケット名** に書き換えてください。
+バケット名は `aws-learners-s3` に設定済みです。
 
 ---
 
