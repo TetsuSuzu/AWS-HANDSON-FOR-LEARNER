@@ -2,6 +2,8 @@
 *
 !.gitignore
 !README.md
+!.github/
+!.github/**
 !Session0/
 !Session0/**
 !Session1/
