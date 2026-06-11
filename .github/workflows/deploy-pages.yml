@@ -1,0 +1,49 @@
+name: GitHub Pages へ自動デプロイ
+
+# web/ フォルダの変更を master に push すると、GitHub Pages に自動公開します。
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'web/**'
+  # Actions タブから手動実行もできるようにする
+  workflow_dispatch:
+
+# GitHub Pages へのデプロイに必要な権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時に走らないように調整（後から push したものを優先）
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      # 1. リポジトリのファイルを取得
+      - name: リポジトリをチェックアウト
+        uses: actions/checkout@v4
+
+      # 2. GitHub Pages の設定を有効化
+      - name: Pages を設定
+        uses: actions/configure-pages@v5
+
+      # 3. 公開するフォルダ（web/）をアップロード
+      - name: web/ をアーティファクトとしてアップロード
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+      # 4. GitHub Pages にデプロイ
+      - name: GitHub Pages にデプロイ
+        id: deployment
+        uses: actions/deploy-pages@v4

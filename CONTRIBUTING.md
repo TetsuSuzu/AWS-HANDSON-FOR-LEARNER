@@ -23,9 +23,12 @@ Issues はリポジトリに関する **タスク・バグ・改善要望** を�
 
 | ラベル | 色 | 用途 |
 |---|---|---|
-| `session1` | 青 | Session1（S3）に関するタスク |
-| `session2` | 黄 | Session2（Lambda + DynamoDB）に関するタスク |
-| `session3` | 赤 | Session3（API Gateway + Bedrock）に関するタスク |
+| `session0` | 灰 | Session0（環境セットアップ・Fork・ローカルサーバー）に関するタスク |
+| `session1` | 青 | Session1（ローカルで HTML/CSS 編集）に関するタスク |
+| `session2` | 黄 | Session2（会員登録 API 連携）に関するタスク |
+| `session3` | 赤 | Session3（AIおすすめ API 連携）に関するタスク |
+| `session4` | 緑 | Session4（GitHub Actions → GitHub Pages 公開）に関するタスク |
+| `staff` | 橙 | 事務局向けバックエンド（S3 / API Gateway / Lambda / DynamoDB / Bedrock） |
 | `docs` | 紺 | 手順書・ドキュメントの改善 |
 
 ### 登録済みのIssue一覧
@@ -89,8 +92,11 @@ gh project item-add 4 \
 
 ## 3. Gists（コード共有）
 
-Gists はコードの断片を **URLで簡単に共有** できる機能です。  
-受講者にコードを配布する際に使用します。
+Gists はコードの断片を **URLで簡単に共有** できる機能です。
+
+> 現行コース（インターン向け）では、学生は AWS のコードを編集しません。
+> バックエンド（Lambda 等）のコードは [staff/](staff/) にまとめており、学生への配布は不要です。
+> 以下の Gist は旧コース（AWSアカウント保有者向け）の名残のため、参考情報として残しています。
 
 ### 公開中のGist一覧
 
@@ -177,10 +183,14 @@ PRで変更があった際に、自動でレビュアーとして追加されま
 # リポジトリ全体のデフォルト責任者
 *          @TetsuSuzu
 
-# Session別の責任者
+# Webサイト本体・各セッション・事務局向け
+web/       @TetsuSuzu
+Session0/  @TetsuSuzu
 Session1/  @TetsuSuzu
 Session2/  @TetsuSuzu
 Session3/  @TetsuSuzu
+Session4/  @TetsuSuzu
+staff/     @TetsuSuzu
 
 # ドキュメント
 *.md       @TetsuSuzu

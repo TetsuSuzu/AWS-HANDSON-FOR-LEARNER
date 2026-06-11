@@ -9,14 +9,21 @@
 # リポジトリ全体の責任者（どのファイルにも一致しない場合のデフォルト）
 *  @TetsuSuzu
 
-# Session1: S3静的サイトホスティング
+# Web サイト本体（学生が編集）
+web/  @TetsuSuzu
+
+# 各セッションの手順書
+Session0/  @TetsuSuzu
 Session1/  @TetsuSuzu
-
-# Session2: IAM + Lambda + DynamoDB
 Session2/  @TetsuSuzu
-
-# Session3: API Gateway + Bedrock
 Session3/  @TetsuSuzu
+Session4/  @TetsuSuzu
+
+# 事務局向け：バックエンド構築手順・コード
+staff/  @TetsuSuzu
+
+# GitHub Actions ワークフロー
+.github/workflows/  @TetsuSuzu
 
 # ドキュメント（README）
 *.md  @TetsuSuzu

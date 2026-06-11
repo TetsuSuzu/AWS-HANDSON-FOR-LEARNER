@@ -1,154 +1,129 @@
-# Session4 — 自動デプロイ（GitHub Actions）
+# Session4 — GitHub Actions でサイトを自動公開する
 
 ## このセッションで学ぶこと
 
-**GitHub Actions** を使って、GitHubにコードをpushすると **自動でS3にデプロイ** される仕組みを構築します。
+**GitHub Actions** を使って、`web/` を編集して push すると
+**自動で GitHub Pages に公開** される仕組みを体験します。**AWS は不要**です。
 
 ```
-【全体の流れ】
-
-開発者が index.html を編集
-  │
-  │ git push
+PCで web/ を編集
+  │  git push
   ▼
-GitHub リポジトリ
-  │
-  │ GitHub Actions が自動起動
+GitHub（自分の Fork したリポジトリ）
+  │  GitHub Actions が自動起動
   ▼
 ┌─────────────────────┐
-│   GitHub Actions    │  ← 自動でジョブを実行
-│  (ubuntu-latest)    │
-└─────────────────────┘
-  │
-  │ aws s3 sync コマンド
-  ▼
-┌─────────────────────┐
-│    Amazon S3        │  ← Session1 で作ったバケット
-│  (静的サイト)        │
+│   GitHub Actions    │  ← web/ をビルド＆アップロード
 └─────────────────────┘
   │
   ▼
-CloudFront 経由でサイト公開
+┌─────────────────────┐
+│   GitHub Pages      │  ← 公開URLでサイトが見られる
+└─────────────────────┘
+   https://<ユーザー名>.github.io/AWS-HANDSON-FOR-LEARNER/
 ```
 
 ---
 
-## GitHub Actions とは
-
-GitHub に組み込まれた **CI/CD（自動化）ツール** です。
+## GitHub Actions の用語
 
 | 用語 | 意味 |
 |---|---|
-| **Workflow（ワークフロー）** | 自動化の手順書。YAMLファイルで書く |
-| **Trigger（トリガー）** | ワークフローが起動するきっかけ（例: pushしたとき） |
-| **Job（ジョブ）** | ワークフロー内の処理のまとまり |
-| **Step（ステップ）** | ジョブ内の個々の処理 |
-| **Runner（ランナー）** | ジョブを実行するサーバー（GitHubが用意） |
+| **Workflow（ワークフロー）** | 自動化の手順書。YAML ファイルで書く（`.github/workflows/deploy-pages.yml`） |
+| **Trigger（トリガー）** | 起動のきっかけ（今回は `web/` への push） |
+| **Job / Step** | 処理のまとまり / 個々の処理 |
+| **Runner（ランナー）** | 処理を実行する GitHub のサーバー |
 
 ---
 
-## 事前準備：AWSの認証情報をGitHubに登録する
+## Step 1 — GitHub Pages を有効にする
 
-GitHub Actions から S3 にアクセスするために、AWSの認証情報を **GitHub Secrets** に登録します。
+1. 自分の Fork したリポジトリの **「Settings」** タブを開く
+2. 左メニュー **「Pages」** をクリック
+3. **「Build and deployment」→「Source」** で **「GitHub Actions」** を選択
 
-### 1. AWSアクセスキーを発行する
-
-1. AWS マネジメントコンソール → **IAM** を開く
-2. 左メニュー **「ユーザー」** → 自分のユーザー名をクリック
-3. **「セキュリティ認証情報」** タブ → **「アクセスキーを作成」** をクリック
-4. ユースケース：**「その他」** を選択 → 「次へ」
-5. **「アクセスキーを作成」** をクリック
-6. `アクセスキーID` と `シークレットアクセスキー` をメモ（この画面を閉じると二度と見られません）
-
-### 2. GitHub Secrets に登録する
-
-1. このリポジトリの **「Settings」** タブを開く
-2. 左メニュー **「Secrets and variables」** → **「Actions」** をクリック
-3. **「New repository secret」** ボタンをクリック
-
-以下の2つを登録します：
-
-| Name（名前） | Secret（値） |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | 発行したアクセスキーID |
-| `AWS_SECRET_ACCESS_KEY` | 発行したシークレットアクセスキー |
+> 「Deploy from a branch」ではなく **「GitHub Actions」** を選ぶのがポイントです。
 
 ---
 
-## ワークフローファイルの確認
+## Step 2 — ワークフローを確認する
 
-`.github/workflows/deploy-to-s3.yml` が自動デプロイの設定ファイルです。
+`.github/workflows/deploy-pages.yml` が自動公開の設定ファイルです。
+中身は次のようになっています（編集不要）。
 
 ```yaml
-name: S3へ自動デプロイ
-
 on:
   push:
     branches:
-      - master          # masterブランチにpushされたときに起動
+      - master
     paths:
-      - 'Session1/**'   # Session1フォルダの変更があったときのみ
+      - 'web/**'        # web/ が変わったときだけ起動
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest   # GitHubが用意するUbuntuサーバーで実行
-
+    runs-on: ubuntu-latest
     steps:
-      # 1. リポジトリのファイルをランナーに取得
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
-
-      # 2. AWS認証情報を設定
-      - name: AWS認証情報を設定
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
-
-      # 3. S3にアップロード
-      - name: S3にデプロイ
-        run: |
-          aws s3 sync Session1/ s3://aws-learners-s3 \
-            --delete \
-            --exclude "*.md"
+          path: web                 # web/ フォルダを公開
+      - uses: actions/deploy-pages@v4
 ```
 
-### `YOUR-BUCKET-NAME` の書き換え
-
-バケット名は `aws-learners-s3` に設定済みです。
+- `web/` を変更して push したときだけ動きます。
+- `web/` フォルダの中身をそのまま GitHub Pages に公開します。
 
 ---
 
-## 動作確認
+## Step 3 — 変更して push する
 
-### 1. ファイルを変更してpushする
-
-`Session1/index.html` を少し編集して、GitHubにpushします。
+`web/index.html` か `web/styles.css` を少し編集して、GitHub に push します。
 
 ```bash
-git add Session1/index.html
-git commit -m "テスト: GitHub Actionsの動作確認"
+git add web/
+git commit -m "サイトを更新（GitHub Actions の動作確認）"
 git push origin master
 ```
 
-### 2. GitHub Actions の実行を確認する
-
-1. リポジトリの **「Actions」** タブをクリック
-2. 実行中または完了したワークフロー **「S3へ自動デプロイ」** をクリック
-3. 各ステップが ✅ になれば成功
-
-### 3. S3・サイトを確認する
-
-CloudFront の URL にアクセスして、変更が反映されていることを確認します。
+> ZIP でダウンロードした人は、ここで一度 [Session0](../Session0/README.md) の **方法B（git clone）** に切り替えてください。
 
 ---
 
-## よくあるエラーと対処法
+## Step 4 — 公開を確認する
 
-| エラー | 原因 | 対処法 |
+1. リポジトリの **「Actions」** タブをクリック
+2. 実行中／完了したワークフロー **「GitHub Pages へ自動デプロイ」** をクリック
+3. 各ステップが ✅ になれば成功
+4. **「Settings」→「Pages」** に表示される公開URLを開く：
+
+```
+https://<自分のユーザー名>.github.io/AWS-HANDSON-FOR-LEARNER/
+```
+
+自分が編集した内容がインターネット上で見られれば完成です 🎉
+
+> 初回は反映まで 1〜2 分ほどかかることがあります。
+
+---
+
+## 補足：公開サイトでも API は動く？
+
+`web/index.html` に設定したエンドポイント（Session2/3）は、公開サイトでもそのまま動きます。
+ただし、事務局の API 側で **公開URL（`https://<ユーザー名>.github.io`）からのアクセスを許可（CORS）** している必要があります。
+うまく動かない場合は事務局に確認してください。
+
+---
+
+## よくあるエラーと対処
+
+| 症状 | 原因 | 対処 |
 |---|---|---|
-| `Unable to locate credentials` | Secretsの登録名が間違っている | `AWS_ACCESS_KEY_ID` のスペルを確認 |
-| `Access Denied` | IAMユーザーにS3の権限がない | IAMユーザーに `AmazonS3FullAccess` を追加 |
-| `NoSuchBucket` | バケット名が間違っている | `YOUR-BUCKET-NAME` を正しいバケット名に修正 |
-| ワークフローが起動しない | トリガーのブランチ名が違う | `branches: master` が合っているか確認 |
+| Actions が起動しない | `web/` 以外しか変更していない | `web/` の中のファイルを変更して push |
+| ページが 404 | Pages の Source が未設定 | Step 1 で **「GitHub Actions」** を選択したか確認 |
+| `Pages site failed` | Pages が無効 | Settings → Pages を一度開いて有効化 |
+| 公開サイトで API がエラー | CORS 未許可 | 事務局に公開URLを伝えて許可してもらう |
+
+---
+
+🎉 これで全セッション完了です。おつかれさまでした！

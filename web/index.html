@@ -82,13 +82,25 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
+    // =====================================================================
+    //  ★ ここを書き換えます（事務局から配布されるエンドポイント）★
+    //   Session2 / Session3 で、配布された URL に置き換えてください。
+    //   書き換える前は空文字 "" のままにしておきます。
+    // =====================================================================
+    var registrationUrl = "";   // ← Session2: 会員登録APIのエンドポイント
+    var bedrockUrl      = "";   // ← Session3: AIおすすめAPIのエンドポイント
+    // =====================================================================
+
     $(function() {
 
         // ── Session2: 会員登録 ──────────────────────────────────
-        // CloudFront経由でAPI Gatewayにルーティング（/users-stage/* → Session2 API）
-        var registrationUrl = "https://APIドメイン名";
+        // 事務局が用意した API Gateway → Lambda → DynamoDB を呼び出します。
 
         $("#registerButton").on("click", function() {
+            if (!registrationUrl) {
+                alert("会員登録APIのエンドポイントが未設定です（Session2 で registrationUrl を設定してください）");
+                return;
+            }
             var requestBody = parseJson($("#registrationForm").serializeArray());
             $.ajax({
                 type: 'POST',
@@ -117,12 +129,15 @@
         }
 
         // ── Session3: AIおすすめ（Bedrock） ─────────────────────
-        // CloudFront経由でAPI Gatewayにルーティング（/prod/* → Session3 API）
-        var bedrockUrl = "https://APIドメイン名";
+        // 事務局が用意した API Gateway → Lambda → Bedrock を呼び出します。
 
         $("#response").html("旅のプロ・アドバイザーがお答えします！");
 
         $("#button").on("click", function() {
+            if (!bedrockUrl) {
+                alert("AIおすすめAPIのエンドポイントが未設定です（Session3 で bedrockUrl を設定してください）");
+                return;
+            }
             $("#response").html("旅のプロ・アドバイザーに問い合わせしています...");
             $.ajax({
                 type: 'post',
