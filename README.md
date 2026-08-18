@@ -40,39 +40,10 @@
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
 | 会員登録確認画面（管理者向け） | http://lastname-firstname-admin.s3-website-ap-northeast-1.amazonaws.com/ |
 
 > ※ 会員登録確認画面（管理者向け）は、こちらのサイトは作成しません。
-> ※ 上記サイトは受講生自身が作成するものです。完成イメージを確認したい場合は、下記の「答え合わせ用サンプルサイト」を参照してください。
-
----
-
-## 答え合わせ用サンプルサイト（講師・運営向け）
-
-Session1〜3の完成形を実際にAWS上に構築した参考実装です。受講生が使うハンズオン用のリソース（`lastname-firstname` 個人名や `aws-learners-s3`）とは完全に分離されています。
-
-| サイト | URL |
-|---|---|
-| 完成サンプルサイト | https://d69f16572v74l.cloudfront.net/ |
-
-<details>
-<summary>作成したAWSリソース一覧（クリックで展開）</summary>
-
-| リソース | 名前 | リージョン |
-|---|---|---|
-| S3バケット | `aws-handson-sample-site` | ap-northeast-1 |
-| CloudFront | `E3PP2GPN6BWSGR`（`d69f16572v74l.cloudfront.net`） | グローバル |
-| IAMロール | `handson-sample` | - |
-| DynamoDBテーブル | `users` | ap-northeast-1 |
-| Lambda（Session2） | `users-post-function-handson-sample` | ap-northeast-1 |
-| Lambda（Session3） | `handson-sample-b` | ap-northeast-1 |
-| API Gateway（Session2） | `handson-sample-users-registration-api`（ステージ `users-stage`） | ap-northeast-1 |
-| API Gateway（Session3） | `handson-sample-b`（ステージ `prod`） | ap-northeast-1 |
-
-後片付けする場合は、上記リソースをすべて削除してください（CloudFrontは無効化後に削除が必要です）。
-
-</details>
 
 ---
 

@@ -258,5 +258,5 @@ http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
 
