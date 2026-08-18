@@ -376,4 +376,4 @@ https://xxxxxxxxxxxx.cloudfront.net/
 
 | サイト | URL |
 |---|---|
-| 勉強会サイト（Session1〜3統合） | https://xxxxxxxxxxxx.cloudfront.net/ |
+| 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
