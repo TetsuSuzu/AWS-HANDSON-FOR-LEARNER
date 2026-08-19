@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理者用：会員情報管理</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>管理者用：会員情報管理</h1>
+    </header>
+
+    <main>
+        <section id="list">
+            <h2>会員一覧</h2>
+            <p><button id="listButton" type="button" class="blue-button">一覧を表示</button></p>
+            <table id="userTable" border="1" cellpadding="6" style="width:100%; border-collapse:collapse; display:none;">
+                <thead>
+                    <tr>
+                        <th>ID</th><th>名前</th><th>メールアドレス</th><th>年齢</th><th>住所</th><th>電話番号</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
+        </section>
+
+        <section id="detail">
+            <h2>会員情報の照会・更新・削除</h2>
+            <form id="userForm">
+                <label for="id">ユーザID</label>
+                <input id="id" type="text" name="id" required><br>
+
+                <label for="name">名前</label>
+                <input id="name" type="text" name="name"><br>
+
+                <label for="email">メールアドレス</label>
+                <input id="email" type="email" name="email"><br>
+
+                <label for="age">年齢</label>
+                <input id="age" type="number" name="age" min="0"><br>
+
+                <label for="address">住所</label>
+                <input id="address" type="text" name="address"><br>
+
+                <label for="tel">電話番号</label>
+                <input id="tel" type="tel" name="tel"><br>
+
+                <p>
+                    <button id="getButton" type="button" class="blue-button">照会</button>
+                    <button id="putButton" type="button" class="blue-button">更新</button>
+                    <button id="deleteButton" type="button" class="blue-button">削除</button>
+                </p>
+            </form>
+            <div id="resultMessage"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2025 会員情報管理（管理者向け）</p>
+    </footer>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script>
+    $(function() {
+
+        // Session5: 管理者API（GET/PUT/DELETE）
+        var adminUrl = "https://APIドメイン名";
+
+        function renderTable(items) {
+            var $body = $("#userTableBody");
+            $body.empty();
+            items.forEach(function(item) {
+                $body.append(
+                    "<tr>" +
+                    "<td>" + item.id + "</td>" +
+                    "<td>" + item.name + "</td>" +
+                    "<td>" + item.email + "</td>" +
+                    "<td>" + item.age + "</td>" +
+                    "<td>" + item.address + "</td>" +
+                    "<td>" + item.tel + "</td>" +
+                    "</tr>"
+                );
+            });
+            $("#userTable").show();
+        }
+
+        $("#listButton").on("click", function() {
+            $.ajax({
+                type: 'GET',
+                url: adminUrl,
+                dataType: 'json'
+            }).done(function(response) {
+                renderTable(response.items || []);
+            }).fail(function() {
+                $("#resultMessage").text("一覧の取得に失敗しました");
+            });
+        });
+
+        $("#getButton").on("click", function() {
+            var id = $("#id").val();
+            $.ajax({
+                type: 'GET',
+                url: adminUrl + "?id=" + encodeURIComponent(id),
+                dataType: 'json'
+            }).done(function(response) {
+                var item = response.item;
+                if (!item) {
+                    $("#resultMessage").text("該当する会員が見つかりません");
+                    return;
+                }
+                $("#name").val(item.name);
+                $("#email").val(item.email);
+                $("#age").val(item.age);
+                $("#address").val(item.address);
+                $("#tel").val(item.tel);
+                $("#resultMessage").text("照会しました");
+            }).fail(function() {
+                $("#resultMessage").text("照会に失敗しました");
+            });
+        });
+
+        $("#putButton").on("click", function() {
+            var requestBody = {};
+            $("#userForm").serializeArray().forEach(function(field) {
+                requestBody[field.name] = field.value;
+            });
+            $.ajax({
+                type: 'PUT',
+                url: adminUrl,
+                contentType: 'application/json; charset=UTF-8',
+                dataType: 'json',
+                data: JSON.stringify(requestBody)
+            }).done(function(response) {
+                $("#resultMessage").text(response.message || "更新しました");
+            }).fail(function() {
+                $("#resultMessage").text("更新に失敗しました");
+            });
+        });
+
+        $("#deleteButton").on("click", function() {
+            var id = $("#id").val();
+            $.ajax({
+                type: 'DELETE',
+                url: adminUrl + "?id=" + encodeURIComponent(id),
+                dataType: 'json'
+            }).done(function(response) {
+                $("#resultMessage").text(response.message || "削除しました");
+                $("#userForm")[0].reset();
+            }).fail(function() {
+                $("#resultMessage").text("削除に失敗しました");
+            });
+        });
+
+    });
+    </script>
+</body>
+</html>
