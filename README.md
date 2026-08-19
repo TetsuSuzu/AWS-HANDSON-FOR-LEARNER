@@ -38,11 +38,12 @@
 
 ## 完成サイト
 
-Session1〜3の完成形を実際にAWS上に構築したサイトです。バックエンドAPI（会員登録・AIおすすめ）はAPIキー必須＋スロットリング（2リクエスト/秒、1日200リクエストまで）で保護済みです。
+Session1〜3の完成形を実際にAWS上に構築したサイトです。バックエンドAPI（会員登録・AIおすすめ・管理者用CRUD）はAPIキー必須＋スロットリング（2リクエスト/秒、1日200リクエストまで）で保護済みです。
 
 | サイト | URL |
 |---|---|
 | 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
+| 管理者用 会員情報管理（Session5） | https://d69f16572v74l.cloudfront.net/admin.html |
 
 <details>
 <summary>作成したAWSリソース一覧（クリックで展開）</summary>
@@ -55,8 +56,10 @@ Session1〜3の完成形を実際にAWS上に構築したサイトです。バ�
 | DynamoDBテーブル | `users` | ap-northeast-1 |
 | Lambda（Session2） | `users-post-function-handson-sample` | ap-northeast-1 |
 | Lambda（Session3） | `handson-sample-b` | ap-northeast-1 |
+| Lambda（Session5） | `handson-sample-admin` | ap-northeast-1 |
 | API Gateway（Session2） | `handson-sample-users-registration-api`（ステージ `users-stage`、APIキー必須） | ap-northeast-1 |
 | API Gateway（Session3） | `handson-sample-b`（ステージ `prod`、APIキー必須） | ap-northeast-1 |
+| API Gateway（Session5） | `handson-sample-admin`（ステージ `admin-stage`、APIキー必須） | ap-northeast-1 |
 | Usage Plan | `handson-sample-usage-plan`（2 req/秒、1日200リクエスト上限） | ap-northeast-1 |
 
 後片付けする場合は、上記リソースをすべて削除してください（CloudFrontは無効化後に削除が必要です）。

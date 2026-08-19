@@ -66,6 +66,11 @@
 
         // Session5: 管理者API（GET/PUT/DELETE）
         var adminUrl = "https://APIドメイン名";
+        // APIキーを必須にしている場合は、ここに発行したキーを設定してください（不要な場合は削除してOKです）
+        var adminApiKey = "";
+        if (adminApiKey) {
+            $.ajaxSetup({ headers: { 'x-api-key': adminApiKey } });
+        }
 
         function renderTable(items) {
             var $body = $("#userTableBody");
