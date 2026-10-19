@@ -1,6 +1,7 @@
 name: S3へ自動デプロイ
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
