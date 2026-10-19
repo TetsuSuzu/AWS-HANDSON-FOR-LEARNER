@@ -15,7 +15,9 @@
                 <li><a href="#photo1">おすすめ風景①</a></li>
                 <li><a href="#photo2">おすすめ風景②</a></li>
                 <li><a href="#signup">会員登録</a></li>
-                <li><a href="#recommendation">あなたの好きな食事は？</a></li>
+                <li><a href="#recommendation">料理のおすすめ</a></li>
+                <li><button type="button" id="loginButton">ログイン</button></li>
+                <li><button type="button" id="logoutButton" hidden>ログアウト</button></li>
             </ul>
         </nav>
     </header>
@@ -25,7 +27,7 @@
             <h2>ようこそ</h2>
             <p>私たちのウェブサイトへようこそ。ここでは、AWSの最新のサービスと情報について、学んでいきます。</p>
             <p>また、勉強以外にも、旅行に役立つ素敵な情報をお届けします。ぜひ、おすすめ風景を楽しんでみてください。</p>
-            <p>会員登録とあわせて、旅行先で食べたい食事や、あなたの趣味を書いてください。おすすめをご紹介します。</p>
+            <p>会員登録機能は Session3 で API と接続します。</p>
         </section>
 
         <section id="photo1">
@@ -62,84 +64,92 @@
                 <label for="tel">電話番号</label>
                 <input id="tel" type="tel" name="tel" required><br>
 
-                <p>個人情報規約に同意し、<button type="button" id="registerButton">登録</button></p>
+                <p><button type="button" id="registerButton">登録</button></p>
+                <p id="registrationStatus" aria-live="polite"></p>
             </form>
         </section>
 
         <section id="recommendation">
-            <h2>あなたの好きな食事は？</h2>
-            <p>旅行先で食べたい料理を教えて下さい！</p>
-            <p><input type="text" id="text" size="155" placeholder="新鮮な魚を食べたい　等　入力してください。"></p>
-            <p><button id="button" type="button" class="blue-button">おすすめを表示</button></p>
-            <div id="response" style="width:100%; min-height:200px; padding:10px; background:#fff; border:1px solid #ccc; border-radius:4px; white-space:pre-wrap; line-height:1.6;"></div>
+            <h2>旅行先の料理を AI に相談</h2>
+            <p>食べたい料理や旅行先を入力してください。</p>
+            <label for="recommendationPrompt">希望</label>
+            <textarea id="recommendationPrompt" rows="3" maxlength="1000" placeholder="例：長野でそばを食べたい"></textarea>
+            <p><button type="button" id="recommendationButton" class="blue-button">おすすめを表示</button></p>
+            <div id="recommendationStatus" aria-live="polite"></div>
         </section>
     </main>
 
     <footer>
+        <p id="authStatus" aria-live="polite"></p>
         <p>© 2026 View AWS勉強会サイト. All rights reserved.</p>
     </footer>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="config.js"></script>
+    <script src="auth.js"></script>
     <script>
-    $(function() {
-
-        // ── Session2: 会員登録 ──────────────────────────────────
-        // CloudFront経由でAPI Gatewayにルーティング（/users-stage/* → Session2 API）
-        var registrationUrl = "/users-stage/";
-
-        $("#registerButton").on("click", function() {
-            var requestBody = parseJson($("#registrationForm").serializeArray());
-            $.ajax({
-                type: 'POST',
-                url: registrationUrl,
-                contentType: 'application/json; charset=UTF-8',
-                dataType: 'json',
-                data: JSON.stringify(requestBody)
-            }).done(function(response) {
-                alert(response.message || "登録が完了しました！");
-                $("#registrationForm")[0].reset();
-            }).fail(function(jqXHR) {
-                var msg = "登録に失敗しました";
-                if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
-                    msg += ": " + jqXHR.responseJSON.error;
-                }
-                alert(msg);
-            });
-        });
-
-        function parseJson(data) {
-            var result = {};
-            for (var i = 0; i < data.length; i++) {
-                result[data[i].name] = data[i].value;
-            }
-            return result;
+    document.getElementById("registerButton").addEventListener("click", async function() {
+        var form = document.getElementById("registrationForm");
+        var status = document.getElementById("registrationStatus");
+        if (!form.reportValidity()) {
+            return;
         }
 
-        // ── Session3: AIおすすめ（Bedrock） ─────────────────────
-        // CloudFront経由でAPI Gatewayにルーティング（/prod/* → Session3 API）
-        var bedrockUrl = "/prod/handson-sample-b";
+        var apiEndpoint = (window.API_ENDPOINT || "").replace(/\/+$/, "");
+        if (!apiEndpoint) {
+            status.textContent = "API URL は Session3 で設定します。";
+            return;
+        }
 
-        $("#response").html("旅のプロ・アドバイザーがお答えします！");
+        var formData = new FormData(form);
+        var user = Object.fromEntries(formData.entries());
+        user.age = Number(user.age);
+        status.textContent = "登録しています...";
 
-        $("#button").on("click", function() {
-            $("#response").html("旅のプロ・アドバイザーに問い合わせしています...");
-            $.ajax({
-                type: 'post',
-                url: bedrockUrl,
-                contentType: 'application/json',
-                dataType: 'text',
-                data: JSON.stringify({ "key1": $("#text").val() }),
-                success: function(data) {
-                    $("#response").html(marked.parse(JSON.parse(data)));
-                },
-                error: function(data) {
-                    alert("error");
-                    $("#response").html(JSON.stringify(data));
-                }
+        try {
+            var response = await window.apiFetch(apiEndpoint + "/v1/users", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(user)
+            }, true);
+            var result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "登録に失敗しました");
+            }
+            status.textContent = result.message || "登録が完了しました。";
+            form.reset();
+        } catch (error) {
+            status.textContent = "登録に失敗しました: " + error.message;
+        }
+    });
+
+    document.getElementById("recommendationButton").addEventListener("click", async function() {
+        var prompt = document.getElementById("recommendationPrompt").value.trim();
+        var status = document.getElementById("recommendationStatus");
+        var endpoint = (window.BEDROCK_API_ENDPOINT || "").replace(/\/+$/, "");
+        if (!prompt) {
+            status.textContent = "希望を入力してください。";
+            return;
+        }
+        if (!endpoint) {
+            status.textContent = "Bedrock API URL は Session4 で設定します。";
+            return;
+        }
+
+        status.textContent = "おすすめを考えています...";
+        try {
+            var response = await window.apiFetch(endpoint + "/v1/recommendations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: prompt })
             });
-        });
-
+            var result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || "おすすめを取得できませんでした");
+            }
+            status.textContent = result.answer;
+        } catch (error) {
+            status.textContent = "おすすめを取得できませんでした: " + error.message;
+        }
     });
     </script>
 </body>

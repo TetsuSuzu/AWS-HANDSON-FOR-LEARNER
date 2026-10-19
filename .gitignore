@@ -1,8 +1,9 @@
-# Session0/Session1/Session2とREADMEのみをpush対象にする
+# 教材ファイルと Amplify のビルド設定を push 対象にする
 *
 !.gitignore
 !README.md
 !CONTRIBUTING.md
+!amplify.yml
 !.github/
 !.github/**
 !Session0/
@@ -13,6 +14,12 @@
 !Session2/**
 !Session3/
 !Session3/**
+!Session4/
+!Session4/**
+!Session5/
+!Session5/**
+!Session7/
+!Session7/**
 !Session4/
 !Session4/**
 !Session5/

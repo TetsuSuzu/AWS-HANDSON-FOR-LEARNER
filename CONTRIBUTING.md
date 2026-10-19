@@ -9,7 +9,7 @@
 
 1. [Issues（課題管理）](#1-issues課題管理)
 2. [Projects（進捗管理ボード）](#2-projects進捗管理ボード)
-3. [Gists（コード共有）](#3-gistsコード共有)
+3. [Session教材のファイル管理](#3-session教材のファイル管理)
 4. [Pull Request（変更の取り込み）](#4-pull-request変更の取り込み)
 5. [CODEOWNERS（責任者設定）](#5-codeowners責任者設定)
 
@@ -25,7 +25,9 @@ Issues はリポジトリに関する **タスク・バグ・改善要望** を�
 |---|---|---|
 | `session1` | 青 | Session1（S3）に関するタスク |
 | `session2` | 黄 | Session2（Lambda + DynamoDB）に関するタスク |
-| `session3` | 赤 | Session3（API Gateway + Bedrock）に関するタスク |
+| `session3` | 赤 | Session3（API Gateway HTTP API + CORS）に関するタスク |
+| `session4` | 紫 | Session4（Amazon Bedrock）に関するタスク |
+| `session5` | 緑 | Session5（Amazon Cognito）に関するタスク |
 | `docs` | 紺 | 手順書・ドキュメントの改善 |
 
 ### 登録済みのIssue一覧
@@ -34,7 +36,7 @@ Issues はリポジトリに関する **タスク・バグ・改善要望** を�
 |---|---|---|
 | #1 | Session1: S3静的サイトホスティングの手順確認 | session1 |
 | #2 | Session2: IAM + Lambda + DynamoDB の手順確認 | session2 |
-| #3 | Session3: API Gateway + Bedrock 連携の手順確認 | session3 |
+| #3 | Session3: API Gateway HTTP API と CORS の手順確認 | session3 |
 | #4 | Session2/README.md を作成する | docs |
 | #5 | Session3/README.md の内容を充実させる | docs |
 | #6 | 受講者向けトラブルシューティングガイドを追加する | docs |
@@ -87,25 +89,17 @@ gh project item-add 4 \
 
 ---
 
-## 3. Gists（コード共有）
+## 3. Session教材のファイル管理
 
-Gists はコードの断片を **URLで簡単に共有** できる機能です。  
-受講者にコードを配布する際に使用します。
+受講者が使うファイルは、各セッションのフォルダに置きます。
 
-### 公開中のGist一覧
+| Session | 主なファイル |
+|---|---|
+| Session1 | `index.html`、`styles.css`、画像、`config.js`、S3 バケットポリシー |
+| Session2 | DynamoDB/Lambda 手順、`app.py`、Lambda テストイベント |
+| Session3 | HTTP API、CORS、S3/Amplify 接続手順 |
 
-| Session | 内容 | URL |
-|---|---|---|
-| Session1 | S3バケットポリシー | https://gist.github.com/TetsuSuzu/52ac3992fedf13078686a3a1001c8540 |
-| Session2 | Lambda関数（DynamoDB登録） | https://gist.github.com/TetsuSuzu/bc7e8259462a96c11dc58b75f61a58d3 |
-| Session2 | Lambdaテストイベント | https://gist.github.com/TetsuSuzu/1ff21322a9206bd40d6430cd0b7c9f28 |
-| Session3 | Lambda関数（Bedrock AI連携） | https://gist.github.com/TetsuSuzu/cac498a24fc62682afc73427c3e7412e |
-
-### 一覧ページ
-
-```
-https://gist.github.com/TetsuSuzu
-```
+コードを変更するときは、手順書の例・セッション内のファイル・テストイベントを一緒に確認してください。Gist を補助的に使う場合も、リポジトリ内のファイルを正本として同期します。
 
 ### CLIでGistを作成する方法
 

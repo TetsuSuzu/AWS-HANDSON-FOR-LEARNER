@@ -64,12 +64,15 @@
     <script>
     $(function() {
 
-        // Session5: 管理者API（GET/PUT/DELETE）
-        var adminUrl = "https://APIドメイン名";
-        // APIキーを必須にしている場合は、ここに発行したキーを設定してください（不要な場合は削除してOKです）
-        var adminApiKey = "";
-        if (adminApiKey) {
-            $.ajaxSetup({ headers: { 'x-api-key': adminApiKey } });
+        // Session7: Session3 の HTTP API（users-api-<名前>）を呼び出す
+        // 末尾に / は付けない（例: https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com）
+        var apiUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
+        var usersUrl = apiUrl + "/v1/users";
+
+        // 失敗時は Lambda が返す message（例: 年齢は 0 以上の整数で指定してください）を表示する
+        function showError(xhr, fallback) {
+            var message = xhr.responseJSON && xhr.responseJSON.message;
+            $("#resultMessage").text(message || fallback);
         }
 
         function renderTable(items) {
@@ -93,12 +96,12 @@
         $("#listButton").on("click", function() {
             $.ajax({
                 type: 'GET',
-                url: adminUrl,
+                url: usersUrl + "?limit=100",
                 dataType: 'json'
             }).done(function(response) {
-                renderTable(response.items || []);
-            }).fail(function() {
-                $("#resultMessage").text("一覧の取得に失敗しました");
+                renderTable(response.users || []);
+            }).fail(function(xhr) {
+                showError(xhr, "一覧の取得に失敗しました");
             });
         });
 
@@ -106,40 +109,41 @@
             var id = $("#id").val();
             $.ajax({
                 type: 'GET',
-                url: adminUrl + "?id=" + encodeURIComponent(id),
+                url: usersUrl + "/" + encodeURIComponent(id),
                 dataType: 'json'
-            }).done(function(response) {
-                var item = response.item;
-                if (!item) {
-                    $("#resultMessage").text("該当する会員が見つかりません");
-                    return;
-                }
-                $("#name").val(item.name);
-                $("#email").val(item.email);
-                $("#age").val(item.age);
-                $("#address").val(item.address);
-                $("#tel").val(item.tel);
+            }).done(function(user) {
+                $("#name").val(user.name);
+                $("#email").val(user.email);
+                $("#age").val(user.age);
+                $("#address").val(user.address);
+                $("#tel").val(user.tel);
                 $("#resultMessage").text("照会しました");
-            }).fail(function() {
-                $("#resultMessage").text("照会に失敗しました");
+            }).fail(function(xhr) {
+                showError(xhr, "照会に失敗しました");
             });
         });
 
         $("#putButton").on("click", function() {
-            var requestBody = {};
-            $("#userForm").serializeArray().forEach(function(field) {
-                requestBody[field.name] = field.value;
-            });
+            var id = $("#id").val();
+            // Android と同じ仕様（docs/api-spec.md）: age は数値、ほかは文字列で送る
+            var requestBody = {
+                id: id,
+                name: $("#name").val(),
+                email: $("#email").val(),
+                age: Number($("#age").val()),
+                address: $("#address").val(),
+                tel: $("#tel").val()
+            };
             $.ajax({
                 type: 'PUT',
-                url: adminUrl,
+                url: usersUrl + "/" + encodeURIComponent(id),
                 contentType: 'application/json; charset=UTF-8',
                 dataType: 'json',
                 data: JSON.stringify(requestBody)
             }).done(function(response) {
                 $("#resultMessage").text(response.message || "更新しました");
-            }).fail(function() {
-                $("#resultMessage").text("更新に失敗しました");
+            }).fail(function(xhr) {
+                showError(xhr, "更新に失敗しました");
             });
         });
 
@@ -147,13 +151,13 @@
             var id = $("#id").val();
             $.ajax({
                 type: 'DELETE',
-                url: adminUrl + "?id=" + encodeURIComponent(id),
-                dataType: 'json'
-            }).done(function(response) {
-                $("#resultMessage").text(response.message || "削除しました");
+                url: usersUrl + "/" + encodeURIComponent(id)
+            }).done(function() {
+                // 削除は 204（本文なし）なので、dataType は指定しない
+                $("#resultMessage").text("削除が完了しました");
                 $("#userForm")[0].reset();
-            }).fail(function() {
-                $("#resultMessage").text("削除に失敗しました");
+            }).fail(function(xhr) {
+                showError(xhr, "削除に失敗しました");
             });
         });
 

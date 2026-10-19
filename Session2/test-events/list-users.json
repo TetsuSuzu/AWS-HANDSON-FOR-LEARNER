@@ -1,0 +1,9 @@
+{
+  "routeKey": "GET /v1/users",
+  "rawPath": "/v1/users",
+  "pathParameters": {},
+  "queryStringParameters": {
+    "limit": "20"
+  },
+  "isBase64Encoded": false
+}

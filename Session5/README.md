@@ -1,298 +1,144 @@
-# AWS ハンズオン：管理者用 会員情報管理アプリを作ろう
+# Session5 — Amazon Cognito で会員 API にログイン認証を追加する
 
-## このハンズオンで作るもの
+Session3 で作った会員 API の全ルートを Cognito の JWT 認証で保護し、Session1 のサイトにログイン／ログアウトを追加します。ログインしていない場合、会員登録・一覧・取得・更新・削除 API は利用できません。
 
-Session2 で登録した会員情報（DynamoDB の `users` テーブル）を、管理者が **照会（GET）・更新（PUT）・削除（DELETE）** できる管理画面を AWS 上に構築します。
+サイトは **AWS Amplify Hosting** で公開し、Cognito の設定値も API の URL と同じく **Amplify の環境変数** で渡します。S3 や CloudFront に `config.js` を手でアップロードする必要はありません。
 
-```
-【全体構成】
+## 構成
 
-ブラウザ（admin.html）
-  │
-  │ 一覧表示 / 照会 / 更新 / 削除
-  ▼
-┌───────────────────┐
-│  Amazon API Gateway│  ← GET / PUT / DELETE を受け付ける
-└───────────────────┘
-  │
-  │ Lambda を呼び出す
-  ▼
-┌──────────────────┐
-│  AWS Lambda      │  ← 操作内容（operation）に応じて処理を分岐
-└──────────────────┘
-  │
-  │ 参照・書き込み・削除
-  ▼
-┌──────────────────┐
-│  Amazon DynamoDB │  ← Session2 で作成した `users` テーブル
-└──────────────────┘
+```text
+Amplify Hosting（Session1 のサイト、HTTPS）
+   │  環境変数 → amplify.yml → config.js（API URL・Cognito の設定値）
+   │
+   │ Cognito Hosted UI でログイン（Authorization Code + PKCE）
+   │ Authorization: Bearer <トークン>
+   ▼
+API Gateway HTTP API（JWT authorizer）
+   │
+   ▼
+Session2 の Lambda → DynamoDB
 ```
 
-## 使用するファイル
+Bedrock のおすすめ API（Session4）はこのセッションでは保護しません。会員 API は Cognito、Bedrock API は Session4 で設定した CORS に従います。
 
-| ファイル名 | 用途 |
+## 事前準備
+
+- [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
+- Session3 で作成した **Amplify アプリ** と、ブランチの **HTTPS URL**（例: `https://<branch>.<app-id>.amplifyapp.com/`）を控える
+- Session3 の API URL を控える
+- Cognito のユーザープールは `ap-northeast-1` に作成する
+
+> Cognito の callback URL には HTTP の URL は使えません。Amplify の URL は HTTPS です。
+
+## 1. Cognito ユーザープールを作成する
+
+1. AWS コンソールを `ap-northeast-1` にし、**Amazon Cognito** → **ユーザープールを作成** を選ぶ
+2. サインイン識別子に **メールアドレス** を選び、セルフサービスサインアップを有効にする
+3. パスワードポリシーと必要属性は教材の既定値を使う。メール認証が必要な場合は、画面の案内どおり Cognito のメール設定を行う
+4. アプリケーションタイプは **Single-page application (SPA)** を選ぶ（public client。クライアントシークレットを作成しない）
+5. アプリクライアント名を `users-site-<名前>` とし、作成する
+6. 作成後、ユーザープール ID とアプリクライアント ID を控える
+
+> **重要**: クライアントシークレットを発行・配布しないでください。ブラウザーに置く SPA は public client とし、Authorization Code Grant と PKCE を使います。
+
+## 2. Cognito のドメインと OAuth を設定する
+
+1. ユーザープールの **ドメイン** で Cognito ドメインを作成する。例: `users-site-<名前>-<一意な文字列>`
+2. アプリクライアントの **ログインページ** または **Managed login** 設定を開く
+3. OAuth 設定を次のとおりにする
+
+   | 項目 | 値 |
+   |---|---|
+   | OAuth grant type | Authorization code grant |
+   | OpenID Connect scopes | `openid`, `email`, `profile` |
+   | Callback URL | Amplify の HTTPS URL（末尾の `/` を含む）。例: `https://<branch>.<app-id>.amplifyapp.com/` |
+   | Sign-out URL | 同じ Amplify の URL |
+
+4. 保存する。Cognito ドメイン URL は `https://<設定したドメイン>.auth.ap-northeast-1.amazoncognito.com` の形です。実際に表示された URL を控えてください
+
+> **callback URL は次の手順の `COGNITO_CALLBACK_URL` と 1 文字も違えないでください。** スキーム・ホスト名・末尾の `/` が一致しないと、ログイン時に `redirect_mismatch` になります。
+
+## 3. API Gateway に JWT authorizer を追加する
+
+1. Session3 の `users-api-<名前>` を開く
+2. **Authorization** → **Manage authorizers** → **Create**（コンソール表示に応じて **JWT authorizer** を追加）を選ぶ
+3. 次の値を設定する
+
+   | 項目 | 値 |
+   |---|---|
+   | Authorizer name | `cognito-users-authorizer` |
+   | Identity source | `$request.header.Authorization` |
+   | Issuer URL | `https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>` |
+   | Audience | Cognito のアプリクライアント ID |
+
+4. authorizer を保存する
+5. API の **Routes** で次の 5 ルートそれぞれを開き、Authorization を `cognito-users-authorizer` に設定する
+
+   - `POST /v1/users`
+   - `GET /v1/users`
+   - `GET /v1/users/{id}`
+   - `PUT /v1/users/{id}`
+   - `DELETE /v1/users/{id}`
+
+6. CORS の設定で、許可オリジンに **Amplify の HTTPS URL**（スキームとホスト名。末尾の `/` は付けない）を含め、許可ヘッダーに `authorization` と `content-type` が含まれていることを確認する
+7. `$default` ステージの自動デプロイが有効であることを確認する
+
+認証済みリクエストでは API Gateway がトークンを検証してから Lambda を呼び出します。Lambda の実行ロールに Cognito 権限を付ける必要はありません。
+
+## 4. Amplify の環境変数に Cognito の値を追加して再デプロイする
+
+Session3・Session4 で登録した環境変数は残したまま、次の 3 つを追加します。
+
+1. AWS Amplify のアプリを開き、**ホスティング** → **環境変数** を開く
+2. 次のキーと値がそろっていることを確認し、不足分を追加する
+
+   | キー | 値 | 登録元 |
+   |---|---|---|
+   | `API_ENDPOINT` | Session3 で控えた会員 API の URL（末尾に `/` は付けない） | Session3 |
+   | `BEDROCK_API_ENDPOINT` | Session4 で控えた Bedrock API の URL | Session4 |
+   | `COGNITO_DOMAIN` | Cognito ドメイン URL（`https://` を含む） | 今回 |
+   | `COGNITO_CLIENT_ID` | アプリクライアント ID | 今回 |
+   | `COGNITO_CALLBACK_URL` | Amplify の HTTPS URL（末尾の `/` を含む。Step 2 の callback URL と同じ値） | 今回 |
+
+3. 保存し、**再デプロイ** する。環境変数を変えただけでは、ビルドし直すまで反映されません
+4. デプロイ完了後、ブラウザーでサイトの URL の後ろに `/config.js` を付けて開き、4 つの値が入っていることを確認する
+
+   ```text
+   https://<branch>.<app-id>.amplifyapp.com/config.js
+   ```
+
+   > 値はブラウザーに配信される公開情報です。パスワードや秘密鍵などの秘密情報は環境変数に入れないでください。
+
+Amplify の `amplify.yml` が、ビルド時に環境変数から `config.js` を生成します。`auth.js` は、この `config.js` の値を使って Cognito のログイン画面へ移動し、戻ってきた認証コードをトークンに交換します。
+
+## 5. ログインと API をテストする
+
+1. Amplify の HTTPS URL を開き、**ログイン** を押す
+2. Cognito Hosted UI で **サインアップ** を選び、テスト用メールアドレスでアカウントを作る。確認コードが求められる場合はメールのコードを入力する
+3. ログイン後、Session1 のサイトに戻り「ログイン中です。」と表示されることを確認する
+4. 会員登録フォームからテスト用データを登録し、成功することを確認する
+5. **ログアウト** してから再度登録する。API が 401 または 403 となり、登録できないことを確認する
+6. 再ログインして、会員 API が利用できることを確認する
+
+トークンは `sessionStorage` に保存され、ブラウザーのタブを閉じると消えます。有効期限が切れた場合は、もう一度ログインしてください。
+
+## トラブルシューティング
+
+| 症状 | 確認すること |
 |---|---|
-| `lambda_function.py` | Lambda 関数のコード（GET/PUT/DELETE を1つの関数で処理） |
-| `admin.html` | 管理者用の会員情報管理ページ |
+| Cognito で `redirect_mismatch` | Cognito の Callback URL と `COGNITO_CALLBACK_URL` が完全一致しているか（scheme、ホスト名、末尾の `/`） |
+| ログインしても設定が入っていない | 環境変数を変えたあとに再デプロイしたか。`/config.js` を開いて値を確認する |
+| ログイン後に状態エラー | 同じタブでログインを開始したか。Amplify の再デプロイ後にもう一度ログインする |
+| API が 401 または 403 | Issuer URL、Audience、Bearer トークン、対象ルートの authorizer 設定 |
+| CORS エラー | CORS の許可オリジンが Amplify の URL と一致し、`authorization` ヘッダーを許可しているか |
+| 認証コードをトークンに交換できない | Cognito アプリクライアントに client secret がなく、Authorization code grant が有効か |
 
----
+## 片付け
 
-## 手順の流れ
+1. API Gateway の 5 ルートから authorizer を外すか、ハンズオン終了なら API を削除する
+2. Cognito ユーザープールを削除する（作成したテストユーザーも削除されます）
+3. 不要なら Amplify のアプリを削除する
 
-1. Lambda 関数を作成・テスト
-2. API Gateway で REST API を作成（GET / PUT / DELETE の3メソッド）
-3. admin.html の API URL を書き換えて S3 にアップロード
-4. 動作確認
+## 次へ
 
----
-
-## Step 1：Lambda 関数を作成する
-
-Session2 で作成した IAM ロール（<font color="red">lastname-firstname</font>）をそのまま使い回します。`AmazonDynamoDBFullAccess` が付与済みのため、追加の権限設定は不要です。
-
-### 1-1. Lambda の画面を開く
-
-1. AWS マネジメントコンソールで検索バーに `Lambda` と入力して選択
-2. **「関数の作成」** ボタンをクリック
-
-### 1-2. 関数を設定する
-
-| 項目 | 値 |
-|---|---|
-| 関数名 | <font color="red">lastname-firstname-admin</font> |
-| ランタイム | **Python 3.12** |
-| 実行ロール | **既存のロールを使用する** → <font color="red">lastname-firstname</font> を選択 |
-
-「関数の作成」をクリック
-
-### 1-3. コードを貼り付ける
-
-1. 関数の詳細画面が開いたら、**「コードソース」** セクションまでスクロール
-2. `lambda_function.py` の内容をすべて削除し、以下のコードをコピーして貼り付ける
-
-```python
-import boto3
-
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('users')
-
-def lambda_handler(event, context):
-    operation = event.get('operation')
-
-    if operation == 'get_all':
-        response = table.scan()
-        return {'items': response.get('Items', [])}
-
-    if operation == 'get':
-        response = table.get_item(Key={'id': event['id']})
-        return {'item': response.get('Item')}
-
-    if operation == 'put':
-        required_keys = ['id', 'name', 'email', 'age', 'address', 'tel']
-        item = {key: event.get(key, '') for key in required_keys}
-        table.put_item(Item=item)
-        return {'message': '更新が完了しました'}
-
-    if operation == 'delete':
-        table.delete_item(Key={'id': event['id']})
-        return {'message': '削除が完了しました'}
-
-    return {'error': '不明な操作です'}
-```
-
-**📝 コード解説**
-
-| 行・処理 | 内容 |
-|---|---|
-| `operation` | API Gateway のマッピングテンプレートが埋め込む「どの操作か」を表す値（`get_all`/`get`/`put`/`delete`） |
-| `table.scan()` | テーブル内の全件を取得する（一覧表示用） |
-| `table.get_item(Key={'id': ...})` | 指定した `id` の1件を取得する（照会用） |
-| `table.put_item(Item=item)` | 指定した `id` の項目を上書き保存する（新規登録にも更新にも使える） |
-| `table.delete_item(Key={'id': ...})` | 指定した `id` の項目を削除する |
-
-3. 右上の **「Deploy」（デプロイ）** ボタンをクリック
-
----
-
-## Step 2：API Gateway で REST API を作成する
-
-GET・PUT・DELETE の3つのメソッドを、すべて同じルート（`/`）に対して作成します。
-
-### 2-1. API Gateway の画面を開く
-
-1. 検索バーに `API Gateway` と入力して選択
-2. **「APIを作成」** ボタンをクリック → **「REST API」** の **「構築」** をクリック
-
-### 2-2. API を作成する
-
-| 項目 | 値 |
-|---|---|
-| 新しい API を作成 | **新しい API** |
-| API 名 | <font color="red">lastname-firstname-admin</font> |
-| API エンドポイントタイプ | **リージョン** |
-
-「APIを作成」をクリック
-
-### 2-3. GET メソッドを作成する（一覧表示・照会）
-
-1. リソース一覧で **`/`（ルート）** を選択 → **「メソッドを作成」** をクリック
-
-| 項目 | 値 |
-|---|---|
-| メソッドタイプ | **GET** |
-| 統合タイプ | **Lambda 関数** |
-| Lambda プロキシ統合 | **オフ（チェックを外す）** |
-| Lambda 関数 | <font color="red">lastname-firstname-admin</font> を選択 |
-
-「メソッドを作成」をクリック（「Lambda 関数に権限を追加しますか？」には **「OK」**）
-
-2. 作成した GET メソッドをクリック → **「統合リクエスト」** タブ → **「編集」**
-3. 「マッピングテンプレート」を追加：
-
-| 項目 | 値 |
-|---|---|
-| コンテンツタイプ | `application/json` |
-| テンプレート本文 | 下記参照 |
-
-```velocity
-#if($input.params('id') != "")
-{"operation":"get","id":"$input.params('id')"}
-#else
-{"operation":"get_all"}
-#end
-```
-
-> クエリ文字列に `id` が付いていれば1件照会、なければ一覧取得として Lambda に伝えます。
-
-### 2-4. PUT メソッドを作成する（更新）
-
-1. **`/`（ルート）** を選択 → **「メソッドを作成」**
-
-| 項目 | 値 |
-|---|---|
-| メソッドタイプ | **PUT** |
-| 統合タイプ | **Lambda 関数** |
-| Lambda プロキシ統合 | **オフ** |
-| Lambda 関数 | <font color="red">lastname-firstname-admin</font> |
-
-2. マッピングテンプレートを追加：
-
-```velocity
-{"operation":"put","id":$input.json('$.id'),"name":$input.json('$.name'),"email":$input.json('$.email'),"age":$input.json('$.age'),"address":$input.json('$.address'),"tel":$input.json('$.tel')}
-```
-
-### 2-5. DELETE メソッドを作成する（削除）
-
-1. **`/`（ルート）** を選択 → **「メソッドを作成」**
-
-| 項目 | 値 |
-|---|---|
-| メソッドタイプ | **DELETE** |
-| 統合タイプ | **Lambda 関数** |
-| Lambda プロキシ統合 | **オフ** |
-| Lambda 関数 | <font color="red">lastname-firstname-admin</font> |
-
-2. マッピングテンプレートを追加：
-
-```velocity
-{"operation":"delete","id":"$input.params('id')"}
-```
-
-### 2-6. CORS を有効にする
-
-1. **`/`（ルート）** を選択 → **「CORS を有効にする」**
-
-| 項目 | 値 |
-|---|---|
-| Access-Control-Allow-Methods | **GET・PUT・DELETE・OPTIONS** にチェック |
-| Access-Control-Allow-Headers | `Content-Type` が含まれていることを確認 |
-| Access-Control-Allow-Origin | `*` |
-
-「保存」をクリック
-
-### 2-7. API をデプロイする
-
-1. **「APIをデプロイ」** ボタンをクリック
-
-| 項目 | 値 |
-|---|---|
-| ステージ | **新しいステージ** |
-| ステージ名 | `admin-stage` |
-
-「デプロイ」をクリック後、**「URLを呼び出す」** の URL をメモしておきます。
-
-```
-例: https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/admin-stage
-```
-
----
-
-## Step 3：admin.html の API URL を書き換えて S3 にアップロードする
-
-### 3-1. API エンドポイントを書き換える
-
-`admin.html` をテキストエディタで開き、以下の部分を探します：
-
-```javascript
-var adminUrl = "https://APIドメイン名";
-```
-
-Step 2-7 でメモした URL に書き換えます：
-
-```javascript
-var adminUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/admin-stage";
-```
-
-### 3-2. S3 にアップロードする
-
-Session1 で作成した S3 バケット（<font color="red">lastname-firstname</font>）に、`admin.html` をそのままアップロードします（新しいバケットは不要です）。
-
-1. Session1 の S3 バケットを開く
-2. **「アップロード」** をクリック → 書き換えた `admin.html` を選択 → **「アップロード」**
-
----
-
-## Step 4：動作確認
-
-### 4-1. 管理画面にアクセスする
-
-```
-https://xxxxxxxxxxxx.cloudfront.net/admin.html
-```
-
-または S3 ウェブサイトエンドポイント経由でも確認できます。
-
-### 4-2. 各機能を確認する
-
-| 確認項目 | 操作 | 期待する動作 |
-|---|---|---|
-| 一覧表示 | 「一覧を表示」を押す | Session2 で登録した会員が一覧表示される |
-| 照会 | ユーザIDを入力して「照会」を押す | 該当会員の情報がフォームに表示される |
-| 更新 | フォームの内容を変更して「更新」を押す | 「更新が完了しました」と表示され、DynamoDB の値が変わる |
-| 削除 | ユーザIDを入力して「削除」を押す | 「削除が完了しました」と表示され、一覧から消える |
-
----
-
-## よくあるトラブルと対処法
-
-### 一覧・照会が失敗する
-
-- `admin.html` の `var adminUrl` が正しい API Gateway URL になっているか確認
-- CORS で **GET** が許可されているか確認
-
-### 更新・削除が失敗する
-
-- CORS で **PUT** / **DELETE** が許可されているか確認（GET だけ許可されている状態になりやすいので注意）
-- マッピングテンプレートがメソッドごとに正しく設定されているか確認
-
-### 照会しても情報が出てこない
-
-- 入力したユーザIDが Session2 で実際に登録したものと一致しているか確認（大文字・小文字も区別されます）
-
----
-
-## 完成イメージ
-
-| 画面 | URL |
-|---|---|
-| 管理者用 会員情報管理 | `https://xxxxxxxxxxxx.cloudfront.net/admin.html`（Session1 で作ったサイトに追加されます） |
+管理者用会員管理を学ぶ場合は [Session7](../Session7/README.md) に進みます。

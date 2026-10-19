@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /v1/recommendations",
+  "rawPath": "/v1/recommendations",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": "{\"prompt\":\"長野でおすすめの郷土料理を教えてください\"}",
+  "isBase64Encoded": false
+}

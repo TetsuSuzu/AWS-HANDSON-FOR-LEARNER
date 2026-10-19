@@ -2,7 +2,7 @@
 
 ## このハンズオンで作るもの
 
-写真や AI おすすめ機能を含む **静的ウェブサイト** を Amazon S3 でホスティングして公開します。
+写真と会員登録フォームを含む **静的ウェブサイト** を Amazon S3 でホスティングして公開します。会員登録フォームは Session3 で API に接続します。
 
 ```
 【全体構成】
@@ -24,6 +24,8 @@
 | `styles.css` | ウェブサイトのデザイン設定 |
 | `photo1.png` | おすすめ風景①の画像（かぐらスキー場） |
 | `photo2.png` | おすすめ風景②の画像（富津海岸から望む富士山） |
+| `config.js` | 会員 API と Bedrock API のエンドポイント（Session3/4 で設定する） |
+| `auth.js` | Session5 の Cognito ログイン／ログアウトと認証付き API 呼び出し |
 | `Bucketpolicy.txt` | S3 バケットを公開するためのポリシー設定 |
 
 ---
@@ -65,14 +67,16 @@
 
 1. 作成したバケットをクリックして開く
 2. **「アップロード」** ボタンをクリック
-3. **「ファイルを追加」** をクリックし、以下の 4 ファイルをすべて選択：
+3. **「ファイルを追加」** をクリックし、以下の 6 ファイルをすべて選択：
    - `index.html`
    - `styles.css`
    - `photo1.png`
    - `photo2.png`
+   - `config.js`
+   - `auth.js`
 4. **「アップロード」** をクリック
 
-> 4 ファイルすべてが「成功しました」と表示されれば OK です。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session4、ログインは Session5 の設定後に使えます。
 
 ---
 
@@ -135,6 +139,8 @@
 
 > `Bucketpolicy.txt` の内容がこのポリシーの元になっています。バケット名の部分だけ書き換えてください。
 
+> **公開範囲に注意**: この手順では S3 の静的ウェブサイトを公開し、誰でも HTML・CSS・画像を閲覧できるようにします。個人情報、認証情報、秘密鍵などをアップロードしないでください。
+
 ---
 
 ## Step 5：CloudFront ディストリビューションを作成する
@@ -183,6 +189,12 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 ```
 例: xxxxxxxxxxxx.cloudfront.net
 ```
+
+## 次へ
+
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session4、ログインは Session5 で設定します。
+
+> ハンズオン終了後は CloudFront ディストリビューションを無効化して削除し、S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
 
 このドメインを使って `https://xxxxxxxxxxxx.cloudfront.net/` でアクセスできます。
 
@@ -250,7 +262,7 @@ http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 
 ### AI おすすめ機能が動かない
 
-- `index.html` 内の `var url = "オススメAIドメイン名"` の部分を、API Gateway のエンドポイント URL に書き換える必要があります
+- `index.html` は書き換えず、Session4 で `Session1/config.js` の `window.BEDROCK_API_ENDPOINT`（Amplify なら同名の環境変数）に HTTP API の URL を設定します。このセッションの時点では、AI おすすめは「Session4 で設定します」と表示されるのが正常です
 
 ---
 
@@ -259,4 +271,3 @@ http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 | サイト | URL |
 |---|---|
 | 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
-

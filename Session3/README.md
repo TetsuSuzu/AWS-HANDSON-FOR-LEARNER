@@ -1,322 +1,219 @@
-# AWS ハンズオン：AI連携（Lambda + API Gateway + Bedrock）
+# Session3 — HTTP API を作り、静的サイトから呼び出す
 
-## このハンズオンで作るもの
+Lambda を、インターネットから呼べる URL（API）に公開します。
 
-ユーザーが入力した食事の好みをもとに、生成 AI（Amazon Bedrock）が旅先のおすすめ料理を提案する機能を AWS 上に構築します。
+開始前に [Session2](../Session2/README.md) の DynamoDB と Lambda を作成・テストしてください。
 
-```
-【全体構成】
+> **API Gateway（HTTP API）とは？**
+> 外からの要求（HTTP リクエスト）を受け付けて、対応する Lambda に渡す入口です。URL のパス（`/v1/users` など）と、メソッド（GET、POST など）ごとに、どの処理に渡すかを決めます。
 
-ブラウザ（Session1 の index.html）
-  │
-  │ テキストを入力してボタンを押したとき
-  ▼
-┌───────────────────┐
-│  Amazon API Gateway│  ← AI へのリクエストを受け付ける
-└───────────────────┘
-  │
-  │ Lambda を呼び出す
-  ▼
-┌──────────────────┐
-│  AWS Lambda      │  ← Amazon Bedrock を呼び出す処理（Python）
-└──────────────────┘
-  │
-  │ AI に問い合わせる
-  ▼
-┌──────────────────┐
-│ Amazon Bedrock   │  ← 生成 AI（Claude Sonnet 4.6）が回答を生成
-└──────────────────┘
-```
+## 3-1. API Gateway の画面を開く
 
-## 使用するファイル
+1. 検索欄に **API Gateway** と入力して開く
+2. リージョンが **ap-northeast-1** であることを確認する
 
-| ファイル名 | 用途 |
+## 3-2. HTTP API を作成する
+
+1. **API を作成** をクリック
+2. **HTTP API** の **構築** をクリック（REST API ではなく HTTP API を選ぶ）
+3. **統合** で **Lambda** を選び、次のとおり入力する
+
+| 項目 | 入力する値 |
 |---|---|
-| `lambda.txt` | Lambda 関数のコード（Bedrock を呼び出す） |
+| Lambda 関数 | `users-function-<名前>`（リージョン ap-northeast-1） |
+| API 名 | `users-api-<名前>` |
 
----
+4. **次へ**
 
-## 手順の流れ
+## 3-3. ルート（経路）を設定する
 
-1. Lambda 関数を作成・テスト
-2. API Gateway で REST API を作成
-3. index.html の API URL を書き換えて S3 にアップロード
-4. 動作確認
+**ルート** は、「どのメソッドと URL の組み合わせを、どの Lambda に渡すか」の一覧です。次の 5 つを作ります。
 
----
+| メソッド | パス | 役割 |
+|---|---|---|
+| POST | `/v1/users` | 会員を登録する |
+| GET | `/v1/users` | 会員の一覧を取る |
+| GET | `/v1/users/{id}` | 会員を 1 件取る |
+| PUT | `/v1/users/{id}` | 会員の内容を更新する |
+| DELETE | `/v1/users/{id}` | 会員を削除する |
 
-## Step 1：Lambda 関数を作成する
+> **`{id}` とは？**
+> URL の中の「変わる部分」です。`/v1/users/u-0001` と呼ぶと、`id` は `u-0001` になり、Lambda に渡されます。
 
-Lambda はサーバーを立てずにコードを実行できるサービスです。ここでは Amazon Bedrock の AI モデルを呼び出す処理を実装します。
+### 作り方
 
-### 1-1. Lambda の画面を開く
+1. ルートの画面で **ルートを追加** をクリック
+2. メソッドとパスを入力し、統合先に `users-function-<名前>` を選ぶ
+3. 上の表の 5 つをすべて追加する
+4. **次へ**
 
-1. AWS マネジメントコンソールで検索バーに `Lambda` と入力して選択
-2. **「関数の作成」** ボタンをクリック
+> 「ルートの追加」を繰り返すと、統合先の選択を忘れやすいので、5 つすべてで `users-function-<名前>` になっているか確認してください。
 
-### 1-2. 関数を設定する
+## 3-4. ステージを設定する
 
-| 項目 | 値 |
-|---|---|
-| 関数名 | <font color="red">lastname-firstname-b</font> |
-| ランタイム | **Python 3.12** |
-| 実行ロール | **既存のロールを使用する** → <font color="red">lastname-firstname</font> を選択 |
+**ステージ** は、API の「公開の段階」です。ここでは、URL にステージ名が付かない `$default` を使います。
 
-> ※ <font color="red">lastname-firstname-b</font> は自分の名前に置き換えてください（例：`yamada-taro-b`）。
+1. ステージ名: **`$default`** のまま
+2. **自動デプロイ** が有効になっていることを確認する（既定で有効）
+3. **次へ** → **作成**
 
-「関数の作成」をクリック
+> **ポイント**: 設定を変えたら、自動デプロイが有効なら数秒で外に反映されます。無効なときは、**デプロイ** を押す必要があります。
 
-> **💡 実行ロールとは？**  
-> Lambda 関数が他の AWS サービスにアクセスするための「権限証明書」です。  
-> Session2 で作成した <font color="red">lastname-firstname</font> ロールには `AmazonBedrockFullAccess` が付与済みのため、このロールを割り当てるだけで Bedrock の AI モデルを呼び出せるようになります。
+## 3-5. API の URL を控える
 
-### 1-3. コードを貼り付ける
+1. 作成した API（`users-api-<名前>`）の画面を開く
+2. **API の詳細** 、または概要に表示される **URL**（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える
+3. 末尾に `/` は付けない
 
-1. 関数の詳細画面が開いたら、**「コードソース」** セクションまでスクロール
-2. `lambda_function.py` の内容をすべて削除し、`lambda.txt` の内容をコピーして貼り付ける
+> この URL が、呼び出す側（Web の画面、Android アプリなど）に設定する値です。
 
-```python
-import json
-import boto3
+### 確認ポイント
 
-bedrock_runtime_client = boto3.client(
-    service_name='bedrock-runtime',
-    region_name='us-east-1'
-)
+- [ ] 5 つのルートがあり、すべて `users-function-<名前>` につながっている
+- [ ] ステージが `$default`
+- [ ] API の URL を控えた
 
-def lambda_handler(event, context):
-    user_prompt = event["key1"]
-    model_id = 'global.anthropic.claude-sonnet-4-6'
-    system_prompt = "あなたは生成AIのエージェントです。ユーザからの質問に丁寧に回答してください。"
-    max_tokens = 1000
-    temperature = 0
+## 3-6. Session1 のサイトに API URL を設定する
 
-    user_message = {
-        "role": "user",
-        "content": user_prompt
-    }
-    body = json.dumps(
-        {
-        "anthropic_version": "bedrock-2023-05-31",
-        "max_tokens": max_tokens,
-        "system": system_prompt,
-        "messages": [user_message],
-        "temperature": temperature
-        }
-    )
-
-    response = bedrock_runtime_client.invoke_model(body=body, modelId=model_id)
-    response_json = json.loads(response.get('body').read())
-    return response_json['content'][0]['text']
-```
-
-**📝 コード解説**
-
-| 行・処理 | 内容 |
-|---|---|
-| `import boto3` / `import json` | AWS SDK と JSON 変換ライブラリを読み込む |
-| `boto3.client('bedrock-runtime', region_name='us-east-1')` | Bedrock を呼び出すためのクライアントを作成する。Bedrock のモデルは `us-east-1`（バージニア北部）で使用する |
-| `lambda_handler(event, context)` | API Gateway からリクエストが来たときに呼び出される関数 |
-| `event["key1"]` | フロントエンドから送られてきたユーザーの入力テキストを取り出す |
-| `model_id` | 使用する AI モデルの ID（Claude Sonnet 4.6 の推論プロファイル） |
-| `system_prompt` | AI に対する役割の指示文。ここを変えると AI の振る舞いが変わる |
-| `max_tokens` | AI が返す回答の最大文字数（トークン数）の上限 |
-| `temperature` | AI の回答のランダム性（0 = 毎回同じ回答、1 に近いほどバリエーションが増える） |
-| `bedrock_runtime_client.invoke_model(...)` | 設定した内容で Bedrock の AI モデルを呼び出す |
-| `response_json['content'][0]['text']` | AI からの回答テキストを取り出してそのまま返す |
-
-3. 右上の **「Deploy」（デプロイ）** ボタンをクリック
-
-> 「関数が正常に更新されました」と表示されれば OK です。
-
-### 1-4. タイムアウトを延長する
-
-1. **「設定」** タブ → **「一般設定」** → **「編集」** をクリック
-2. タイムアウトを **1 分** に変更して **「保存」** をクリック
-
-> Bedrock の応答に時間がかかる場合があるため、デフォルト（3 秒）から延長します。
-
-### 1-5. Lambda をテストする
-
-1. **「テスト」** タブをクリック
-2. **「新しいイベントを作成」** を選択
-3. イベント名に `testEvent` と入力
-4. テストイベントの JSON を以下に書き換える：
-
-```json
-{
-    "key1": "長野でおすすめの料理を教えてください"
-}
-```
-
-5. **「保存」** をクリック → **「テスト」** をクリック
-6. 結果に AI からの回答テキストが表示されれば成功！
-
----
-
-## Step 2：API Gateway で REST API を作成する
-
-API Gateway は、ブラウザからのリクエストを Lambda に橋渡しする役割を担います。
-
-### 2-1. API Gateway の画面を開く
-
-1. 検索バーに `API Gateway` と入力して選択
-2. **「APIを作成」** ボタンをクリック
-
-### 2-2. API の種類を選ぶ
-
-**「REST API」** の **「構築」** をクリック
-
-> 「REST API（プライベート）」ではなく「REST API」を選んでください。
-
-### 2-3. API を作成する
-
-| 項目 | 値 |
-|---|---|
-| 新しい API を作成 | **新しい API** |
-| API 名 | <font color="red">lastname-firstname-b</font> |
-| API エンドポイントタイプ | **リージョン** |
-
-「APIを作成」をクリック
-
-### 2-4. リソースを作成する
-
-1. **「リソースを作成」** をクリック
-2. リソース名に <font color="red">lastname-firstname-b</font> と入力
-3. **「リソースを作成」** をクリック
-
-### 2-5. POST メソッドを作成する
-
-1. 作成したリソースを選択 → **「メソッドを作成」** をクリック
-
-| 項目 | 値 |
-|---|---|
-| メソッドタイプ | **POST** |
-| 統合タイプ | **Lambda 関数** |
-| Lambda プロキシ統合 | **オフ（チェックを外す）** |
-| Lambda 関数 | <font color="red">lastname-firstname-b</font> を選択（リージョン：ap-northeast-1） |
-
-「メソッドを作成」をクリック
-
-> 「Lambda 関数に権限を追加しますか？」と聞かれたら **「OK」** をクリックしてください。
-
-### 2-6. マッピングテンプレートを設定する
-
-1. 作成した POST メソッドをクリックして詳細画面を開く
-2. **「統合リクエスト」** タブをクリック → **「編集」** をクリック
-3. 「マッピングテンプレート」セクションを展開 → **「マッピングテンプレートを追加」** をクリック
-
-| 項目 | 値 |
-|---|---|
-| コンテンツタイプ | `application/json` |
-| テンプレート本文 | `{"key1":$input.json('$.key1')}` |
-
-「保存」をクリック
-
-> **💡 マッピングテンプレートとは？**  
-> API Gateway がブラウザから受け取ったリクエストを、Lambda が扱いやすい形に変換するための「翻訳ルール」です。  
-> フロントエンドは `{"key1": "長野でおすすめの料理は？"}` という形で送信しており、`$input.json('$.key1')` でその値だけを取り出して Lambda に渡します。  
-> これにより Lambda のコードでは `event["key1"]` でユーザーの入力テキストを直接受け取ることができます。
-
-### 2-7. CORS を有効にする
-
-ブラウザから API を呼び出せるようにするため、CORS（クロスオリジンリソース共有）を設定します。
-
-1. リソースを選択 → **「CORS を有効にする」** ボタンをクリック
-
-| 項目 | 値 |
-|---|---|
-| Access-Control-Allow-Methods | **POST** と **OPTIONS** にチェック |
-| Access-Control-Allow-Headers | `Content-Type` が含まれていることを確認 |
-| Access-Control-Allow-Origin | `*` |
-
-「保存」をクリック
-
-### 2-8. API をデプロイする
-
-1. **「APIをデプロイ」** ボタンをクリック
-
-| 項目 | 値 |
-|---|---|
-| ステージ | **新しいステージ** |
-| ステージ名 | `prod` |
-
-「デプロイ」をクリック
-
-### 2-9. エンドポイント URL をメモする
-
-デプロイ後に表示される **「ステージの詳細」** 画面で、**「URLを呼び出す」** の URL をコピーしてメモしておきます。
-
-```
-例: https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod
-```
-
-> この URL は次のステップで index.html に貼り付けます。
-
----
-
-## Step 3：index.html の API URL を書き換えて S3 にアップロードする
-
-### 3-1. HTML ファイルの API エンドポイントを書き換える
-
-Session1 の `index.html` をテキストエディタ（メモ帳など）で開き、以下の部分を探します：
+Session1 の静的サイトから API を呼ぶには、API の URL を `Session1/config.js` に設定します。`<API の URL>` は 3-5 で控えた値に置き換え、末尾に `/` は付けません。
 
 ```javascript
-var bedrockUrl = "https://APIドメイン名";
+window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
 ```
 
-Step 2-9 でメモした URL にリソース名を加えた URL に書き換えます：
+### 方法 A：Session1 の S3 静的サイトを更新する
 
-```javascript
-var bedrockUrl = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/prod/lastname-firstname-b";
+1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
+2. AWS コンソールで Session1 の S3 バケットを開く
+3. `index.html`、`auth.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
+4. Session1 で CloudFront も作成している場合は、ディストリビューションの **Invalidations** から `/*` を無効化する
+5. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
+
+S3 ウェブサイトエンドポイントは HTTP です。CloudFront を利用する場合は HTTPS の CloudFront ドメインを使ってください。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。
+
+### 方法 B：AWS Amplify Hosting
+
+このリポジトリの `Session1` は HTML/CSS/JavaScript の静的サイトで、Node.js の依存パッケージはありません。リポジトリのルートにある `amplify.yml` が、Amplify のビルド時に環境変数から `Session1/config.js` を生成します。
+
+1. AWS マネジメントコンソールで **AWS Amplify** を開き、**新しいアプリを作成** → **Git リポジトリをホスト** を選ぶ
+2. GitHub などのプロバイダーを接続し、この教材リポジトリとブランチを選択する
+3. ビルド設定でリポジトリルートの `amplify.yml` が使われることを確認する
+4. アプリの **環境変数（Environment variables）** を開き、次を追加する
+
+   | キー | 値 |
+   |---|---|
+   | `API_ENDPOINT` | 3-5 で控えた API の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`） |
+
+5. 保存してビルド・デプロイする。環境変数を後から変更した場合は再デプロイする
+6. デプロイ完了後に表示される Amplify のブランチ URL を控える
+
+> `API_ENDPOINT` はビルドでブラウザーに配信する設定値です。API URL は公開情報ですが、パスワードや秘密鍵などの秘密情報を環境変数に入れないでください。
+
+> Session4 で Bedrock API を追加するときは、同じ Amplify アプリの `BEDROCK_API_ENDPOINT` 環境変数も登録して再デプロイします。
+
+### 確認ポイント
+
+- [ ] Session1 のサイトを更新した、または Amplify Hosting にデプロイした
+- [ ] 公開先の URL を控えた（次の CORS 設定で使用）
+- [ ] `Session1/config.js` または Amplify 環境変数に API エンドポイントを設定した
+
+## 3-7. CORS を設定する
+
+CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の S3 ウェブサイトエンドポイント、CloudFront、または Amplify で公開した URL の「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
+
+1. **API Gateway** → `users-api-<名前>` → **CORS** を開く（API の **設定** 内にある場合もあります）
+2. 次のとおり設定する
+
+   | 項目 | 設定値 |
+   |---|---|
+   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`、CloudFront は `https://<ディストリビューションのドメイン名>`、Amplify はデプロイ画面に表示されたブランチ URL。複数の URL から使う場合は各オリジンを追加 |
+   | 許可されたメソッド（Access-Control-Allow-Methods） | `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` |
+   | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type`, `authorization`（Session5 で Cognito JWT 認証を使うため） |
+   | 認証情報（Access-Control-Allow-Credentials） | 無効 |
+
+3. 保存する。ステージ `$default` の自動デプロイが有効なら、設定は自動で反映される
+
+> **注意**: URL に含まれるスキーム（`http://` または `https://`）とホスト名を正確に登録します。末尾にパス（例: `/index.html`）や `/` を付けません。`*` の許可は使わず、必要なサイトだけを登録します。
+>
+> HTTP API の CORS を API Gateway 側で設定した場合、API Gateway が CORS 応答ヘッダーを返し、プリフライト（OPTIONS）要求にも応答します。OPTIONS 用の Lambda ルートは追加しません。Lambda の応答側に別の CORS ヘッダーを追加しないでください。
+
+### 確認ポイント
+
+- [ ] 実際のフロントエンド URL のオリジンを許可した
+- [ ] `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` と `content-type`, `authorization` を許可した
+- [ ] 認証情報は無効になっている
+
+## 3-8. 動作を確かめる（PowerShell）
+
+ブラウザや PowerShell から、実際に呼んで確かめます。`<API の URL>` は 3-5 で控えた値に置き換えてください。
+
+### 会員を登録する（POST）
+
+```powershell
+$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+$body = '{"id":"u-0001","name":"山田太郎","email":"taro@example.com","age":30,"address":"東京都千代田区1-1","tel":"09012345678"}'
+Invoke-RestMethod -Method Post -Uri "$api/v1/users" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
-### 3-2. S3 にアップロードする
+- 結果に `message` と `user` が出れば成功です。
 
-1. Session1 で作成した S3 バケット（<font color="red">lastname-firstname</font>）を開く
-2. **「アップロード」** をクリック → 書き換えた `index.html` を選択 → **「アップロード」** をクリック
+### 一覧を取る（GET）
 
----
-
-## Step 4：動作確認
-
-### 4-1. ウェブサイトにアクセスする
-
-```
-https://xxxxxxxxxxxx.cloudfront.net/
+```powershell
+Invoke-RestMethod -Uri "$api/v1/users?limit=20"
 ```
 
-### 4-2. AI おすすめ機能を試す
+- `users` の中に、登録した `u-0001` が出れば成功です。
 
-1. 「あなたの好きな食事は？」セクションにテキストを入力（例：「長野でおすすめの食事を教えて」）
-2. **「おすすめを表示」** ボタンをクリック
-3. AI（Bedrock）からの回答が表示されれば成功！
+### 1 件取る（GET）
 
----
+```powershell
+Invoke-RestMethod -Uri "$api/v1/users/u-0001"
+```
 
-## よくあるトラブルと対処法
+### 更新する（PUT）
 
-### AI おすすめ機能が動かない
+```powershell
+$body = '{"id":"u-0001","name":"山田次郎","email":"taro@example.com","age":31,"address":"東京都千代田区1-1","tel":"09012345678"}'
+Invoke-RestMethod -Method Put -Uri "$api/v1/users/u-0001" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+```
 
-- `index.html` の `var bedrockUrl` が正しい API Gateway URL になっているか確認
-- URL の末尾にリソース名（`/prod/lastname-firstname-b`）が含まれているか確認
-- Lambda 関数が正しくデプロイされているか確認
+### 削除する（DELETE）
 
-### Lambda テストでエラーが出る
+```powershell
+Invoke-WebRequest -Method Delete -Uri "$api/v1/users/u-0001" -UseBasicParsing | Select-Object StatusCode
+```
 
-- Amazon Bedrock（us-east-1）でモデルのアクセス権が付与されているか確認
-- 推論プロファイル `global.anthropic.claude-sonnet-4-6` を使用しているか確認（オンデマンドモデル ID では動作しない）
-- IAM ロールに `AmazonBedrockFullAccess` が付与されているか確認
+- `StatusCode` が **204** なら成功です（本文は空）。
 
-### タイムアウトエラーが出る
+### 確認ポイント
 
-- API Gateway のタイムアウトは最大 29 秒のため、Bedrock の応答が遅い場合はエラーになることがある
-- Lambda のタイムアウトが 1 分に設定されているか確認（Step 1-4 参照）
+- [ ] POST で 201 相当の結果（`message` と `user`）が返る
+- [ ] GET 一覧に登録した会員が出る
+- [ ] PUT で `name` が「山田次郎」に変わる
+- [ ] DELETE 後、GET 1 件で 404（見つからない）になる
 
----
+> **うまくいかないとき**
+> - 404 Not Found: パスの綴りを確認（`/v1/users` の `v1` を忘れていないか）
+> - 500 エラー: Lambda の CloudWatch Logs を確認（2-7 の権限やテーブル名を見直す）
+> - 日本語が文字化けして見える: PowerShell の表示の問題のことが多いです。データの中身は、Lambda の一覧で確かめてください。
+>
+> PowerShell の呼び出しは API の動作確認には使えますが、ブラウザーの CORS 制約は検査しません。CORS を含めた確認には、公開した Web アプリを実際にブラウザーで開いて API を呼び出してください。Session5 で Cognito を設定した後は、会員 API にログインが必要になります。
 
-## 完成サイト
+## 3-9. 片付け（使い終わったら）
 
-| サイト | URL |
-|---|---|
-| 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
+次の順番で削除してください（依存があるので、この順です）。
+
+1. CloudFront を使った場合は、CloudFront ディストリビューションを無効化し、無効化が完了してから削除する（無効化には時間がかかります）
+2. S3 を使った場合は、バケット内のオブジェクトを空にしてからバケットを削除する
+3. Amplify を使った場合は、Amplify コンソールでアプリを削除する
+4. API Gateway → `users-api-<名前>` を削除
+5. Lambda → `users-function-<名前>` を削除
+6. DynamoDB → `users-table-<名前>` テーブルを削除
+7. IAM → 実行ロール（`users-function-<名前>-role-xxxx`）を削除（任意）
+
+## 次の段階
+
+この教材では、認証（ログイン）は付けていません。次は、Cognito を使ってログインした人だけが API を呼べるようにする段階に進みます。
+
+Session3 の後は [Session4](../Session4/README.md) で Bedrock の料理おすすめ機能を追加し、続けて [Session5](../Session5/README.md) で Cognito 認証を設定してください。
