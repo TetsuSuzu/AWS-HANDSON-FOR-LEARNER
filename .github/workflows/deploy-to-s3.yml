@@ -27,7 +27,13 @@ jobs:
           aws-region: ap-northeast-1
 
       - name: S3にデプロイ
+        # --delete は付けない（同じバケットの admin.html など Session1 以外のファイルを消さないため）
         run: |
-          aws s3 sync Session1/ s3://aws-learners-s3 \
-            --delete \
+          aws s3 sync Session1/ s3://aws-handson-sample-site \
             --exclude "*.md"
+
+      - name: CloudFrontのキャッシュを削除
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E3PP2GPN6BWSGR \
+            --paths "/*"
