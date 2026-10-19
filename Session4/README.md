@@ -1,154 +1,136 @@
-# Session4 — 自動デプロイ（GitHub Actions）
+# Session4 — Amazon Bedrock で旅行先の料理をおすすめする
 
-## このセッションで学ぶこと
+Session1 のサイトに入力された希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
 
-**GitHub Actions** を使って、GitHubにコードをpushすると **自動でS3にデプロイ** される仕組みを構築します。
+## 構成
 
-```
-【全体の流れ】
-
-開発者が index.html を編集
-  │
-  │ git push
-  ▼
-GitHub リポジトリ
-  │
-  │ GitHub Actions が自動起動
-  ▼
-┌─────────────────────┐
-│   GitHub Actions    │  ← 自動でジョブを実行
-│  (ubuntu-latest)    │
-└─────────────────────┘
-  │
-  │ aws s3 sync コマンド
-  ▼
-┌─────────────────────┐
-│    Amazon S3        │  ← Session1 で作ったバケット
-│  (静的サイト)        │
-└─────────────────────┘
-  │
-  ▼
-CloudFront 経由でサイト公開
+```text
+Session1 のブラウザー
+   │ POST /v1/recommendations
+   ▼
+API Gateway HTTP API（us-east-1）
+   │
+   ▼
+Lambda（Bedrock 呼び出し）
+   │
+   ▼
+Amazon Bedrock Runtime（Claude Sonnet 4.6）
 ```
 
----
+## 事前準備
 
-## GitHub Actions とは
+- [Session1](../Session1/README.md)〜[Session3](../Session3/README.md) を完了する
+- Session1 の CloudFront または Amplify のサイト URL を控える。S3 ウェブサイト URL を使う場合は `http://` から始まるオリジン全体を控える
+- AWS アカウントで `us-east-1` の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
+- Session4 の API Gateway と Lambda は Bedrock Runtime と同じ `us-east-1` に作成する
 
-GitHub に組み込まれた **CI/CD（自動化）ツール** です。
+> **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
 
-| 用語 | 意味 |
-|---|---|
-| **Workflow（ワークフロー）** | 自動化の手順書。YAMLファイルで書く |
-| **Trigger（トリガー）** | ワークフローが起動するきっかけ（例: pushしたとき） |
-| **Job（ジョブ）** | ワークフロー内の処理のまとまり |
-| **Step（ステップ）** | ジョブ内の個々の処理 |
-| **Runner（ランナー）** | ジョブを実行するサーバー（GitHubが用意） |
+## 1. Lambda 関数を作成する
 
----
+1. AWS コンソールのリージョンを **米国東部（バージニア北部） `us-east-1`** に切り替える
+2. **Lambda** → **関数の作成** → **一から作成** を選ぶ
+3. 次の設定で作成する
 
-## 事前準備：AWSの認証情報をGitHubに登録する
+   | 項目 | 値 |
+   |---|---|
+   | 関数名 | `travel-recommendation-<名前>` |
+   | ランタイム | Python 3.12 |
+   | アーキテクチャ | x86_64 |
+   | 実行ロール | 基本的な Lambda のアクセス権限で新しいロールを作成 |
 
-GitHub Actions から S3 にアクセスするために、AWSの認証情報を **GitHub Secrets** に登録します。
+4. 関数の **コード** タブで `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
+5. **Deploy（デプロイ）** をクリックする。ハンドラーは `lambda_function.lambda_handler` にする
+6. **設定** → **一般設定** → **編集** でタイムアウトを **1 分** にする
 
-### 1. AWSアクセスキーを発行する
+## 2. Lambda 実行ロールに Bedrock 権限を付ける
 
-1. AWS マネジメントコンソール → **IAM** を開く
-2. 左メニュー **「ユーザー」** → 自分のユーザー名をクリック
-3. **「セキュリティ認証情報」** タブ → **「アクセスキーを作成」** をクリック
-4. ユースケース：**「その他」** を選択 → 「次へ」
-5. **「アクセスキーを作成」** をクリック
-6. `アクセスキーID` と `シークレットアクセスキー` をメモ（この画面を閉じると二度と見られません）
+1. Lambda の **設定** → **アクセス権限** を開き、実行ロール名をクリックする
+2. IAM ロールで **許可を追加** → **インラインポリシーを作成** → **JSON** を選ぶ
+3. 次のポリシーを貼り付ける
 
-### 2. GitHub Secrets に登録する
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "bedrock:InvokeModel",
+         "Resource": [
+           "arn:aws:bedrock:*:<アカウントID>:inference-profile/global.anthropic.claude-sonnet-4-6",
+           "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
+         ]
+       }
+     ]
+   }
+   ```
 
-1. このリポジトリの **「Settings」** タブを開く
-2. 左メニュー **「Secrets and variables」** → **「Actions」** をクリック
-3. **「New repository secret」** ボタンをクリック
+4. ARN 中の `<アカウントID>` を自分の AWS アカウント ID に置き換え、ポリシー名を `bedrock-invoke-model-<名前>` として作成する
 
-以下の2つを登録します：
+> このポリシーは Claude Sonnet 4.6 のグローバル推論プロファイルと、クロスリージョン先の同モデル呼び出しに限定します。推論プロファイルを使う場合は、プロファイル ARN と利用先の foundation model ARN の両方が必要です。Bedrock 側のモデル利用条件も満たしている必要があります。
 
-| Name（名前） | Secret（値） |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | 発行したアクセスキーID |
-| `AWS_SECRET_ACCESS_KEY` | 発行したシークレットアクセスキー |
+## 3. Lambda 単体でテストする
 
----
+1. **テスト** → **新しいイベントを作成** を選択する
+2. イベント名を `recommendation-test` にし、`test-event.json` の内容を貼り付けて保存する
+3. **テスト** を実行する
+4. `statusCode` が `200` で、本文の `answer` に日本語の提案があれば成功
 
-## ワークフローファイルの確認
+入力が不正な場合は 400、Bedrock 呼び出しで失敗した場合は 502 が返ります。失敗時は Lambda の **モニタリング** → **CloudWatch Logs** で詳細を確認してください。
 
-`.github/workflows/deploy-to-s3.yml` が自動デプロイの設定ファイルです。
+## 4. HTTP API を作成する
 
-```yaml
-name: S3へ自動デプロイ
+1. リージョンが `us-east-1` のまま **API Gateway** を開く
+2. **API を作成** → **HTTP API** → **構築** を選ぶ
+3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
+4. ルートに `POST /v1/recommendations` を追加し、統合先が上記 Lambda であることを確認する
+5. ステージは `$default`、自動デプロイを有効にして作成する
+6. API の詳細に表示される URL（例: `https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com`）を控える。末尾の `/` は付けない
 
-on:
-  push:
-    branches:
-      - master          # masterブランチにpushされたときに起動
-    paths:
-      - 'Session1/**'   # Session1フォルダの変更があったときのみ
+## 5. API の CORS を設定する
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest   # GitHubが用意するUbuntuサーバーで実行
+1. API Gateway で `travel-recommendation-api-<名前>` を開き **CORS** を選ぶ
+2. 次の値を設定する
 
-    steps:
-      # 1. リポジトリのファイルをランナーに取得
-      - name: リポジトリをチェックアウト
-        uses: actions/checkout@v4
+   | 項目 | 値 |
+   |---|---|
+   | 許可されたオリジン | 実際にサイトを開く URL のオリジン。CloudFront は `https://<CloudFront ドメイン>`、Amplify はデプロイされたブランチ URL、S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com` |
+   | 許可されたメソッド | `POST`, `OPTIONS` |
+   | 許可されたヘッダー | `content-type` |
+   | 認証情報 | 無効 |
 
-      # 2. AWS認証情報を設定
-      - name: AWS認証情報を設定
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-1
+3. 保存する。`$default` ステージの自動デプロイが有効なら設定は自動反映される
 
-      # 3. S3にアップロード
-      - name: S3にデプロイ
-        run: |
-          aws s3 sync Session1/ s3://aws-learners-s3 \
-            --delete \
-            --exclude "*.md"
-```
+ブラウザーで確認するときは実際の公開元 URL とスキームを許可します。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
 
-### `YOUR-BUCKET-NAME` の書き換え
+## 6. Session1 のサイトに API URL を設定する
 
-バケット名は `aws-learners-s3` に設定済みです。
+1. `Session1/config.js` を編集し、Session3 で設定した `API_ENDPOINT` を残したまま、次の行を追加する
 
----
+   ```javascript
+   window.BEDROCK_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com";
+   ```
 
-## 動作確認
+2. S3 へ公開している場合は `Session1/index.html`、`auth.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下に再アップロードする。CloudFront を使う場合は `/*` を Invalidation する
+3. Amplify を使う場合は環境変数 `BEDROCK_API_ENDPOINT` に API URL を追加して再デプロイする
+4. Session1 のサイトを HTTPS（CloudFront または Amplify）で開き、おすすめ欄に「長野でそばを食べたい」などと入力してボタンを押す
+5. Bedrock からの日本語回答が画面に表示されれば成功
 
-### 1. ファイルを変更してpushする
+> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
 
-`Session1/index.html` を少し編集して、GitHubにpushします。
+## 確認ポイント
 
-```bash
-git add Session1/index.html
-git commit -m "テスト: GitHub Actionsの動作確認"
-git push origin master
-```
+- [ ] Lambda のテストで `statusCode: 200` が返る
+- [ ] HTTP API に `POST /v1/recommendations` がある
+- [ ] サイトのオリジンが API CORS で許可されている
+- [ ] Session1 のサイトから日本語のおすすめを取得できる
 
-### 2. GitHub Actions の実行を確認する
+## 片付け
 
-1. リポジトリの **「Actions」** タブをクリック
-2. 実行中または完了したワークフロー **「S3へ自動デプロイ」** をクリック
-3. 各ステップが ✅ になれば成功
+1. API Gateway の `travel-recommendation-api-<名前>` を削除する
+2. Lambda の `travel-recommendation-<名前>` を削除する
+3. IAM に作成された実行ロールを削除する（他の関数で共有していないことを確認）
 
-### 3. S3・サイトを確認する
+Bedrock への呼び出しは従量課金です。使い終わったら API を削除し、不要な呼び出しが続かないようにしてください。
 
-CloudFront の URL にアクセスして、変更が反映されていることを確認します。
-
----
-
-## よくあるエラーと対処法
-
-| エラー | 原因 | 対処法 |
-|---|---|---|
-| `Unable to locate credentials` | Secretsの登録名が間違っている | `AWS_ACCESS_KEY_ID` のスペルを確認 |
-| `Access Denied` | IAMユーザーにS3の権限がない | IAMユーザーに `AmazonS3FullAccess` を追加 |
-| `NoSuchBucket` | バケット名が間違っている | `YOUR-BUCKET-NAME` を正しいバケット名に修正 |
-| ワークフローが起動しない | トリガーのブランチ名が違う | `branches: master` が合っているか確認 |
+認証を追加する場合は、[Session5](../Session5/README.md) に進んでください。Session5 は会員 API を保護します。Bedrock API は引き続き認証されないため、CORS と API URL を公開範囲に注意して管理してください。

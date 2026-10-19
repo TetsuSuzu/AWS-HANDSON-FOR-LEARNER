@@ -15,8 +15,17 @@ Session1/  @TetsuSuzu
 # Session2: IAM + Lambda + DynamoDB
 Session2/  @TetsuSuzu
 
-# Session3: API Gateway + Bedrock
+# Session3: API Gateway HTTP API + CORS
 Session3/  @TetsuSuzu
+
+# Session4: Amazon Bedrock
+Session4/  @TetsuSuzu
+
+# Session5: Amazon Cognito
+Session5/  @TetsuSuzu
+
+# Session7: 旧教材
+Session7/  @TetsuSuzu
 
 # ドキュメント（README）
 *.md  @TetsuSuzu
