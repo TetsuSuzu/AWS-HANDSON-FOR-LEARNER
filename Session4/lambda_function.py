@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-bedrock = boto3.client("bedrock-runtime", region_name="us-east-1")
+bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")
 MODEL_ID = "global.anthropic.claude-sonnet-4-6"
 MAX_PROMPT_LENGTH = 1000
 

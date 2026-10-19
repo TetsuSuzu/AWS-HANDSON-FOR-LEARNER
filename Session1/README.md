@@ -54,7 +54,6 @@
 |---|---|
 | バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`） |
 | AWS リージョン | **アジアパシフィック（東京） ap-northeast-1** |
-| オブジェクト所有者 | ACL 無効（推奨） |
 | パブリックアクセスをすべてブロック | **チェックを外す（ブロックを無効にする）** |
 
 > 「現在の設定により～」という警告が出ますが、今回は公開サイトを作るため無効にします。確認チェックボックスにチェックを入れて進みます。
@@ -238,6 +237,103 @@ http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 | おすすめ風景② | 富津海岸から望む富士山の写真 |
 | 新規会員募集 | 会員登録ページへのリンク |
 | あなたの好きな食事は？ | AI が旅先のおすすめ食事を提案する機能 |
+
+---
+
+## コードの読み方（初心者向け）
+
+このセクションでは、Session1 のファイルに書かれているコードの意味を説明します。最初からすべてを理解する必要はありません。「どこで、何をしているか」がわかれば十分です。
+
+### 用語の説明
+
+| 用語 | 意味 |
+|---|---|
+| HTML | ウェブページの骨組みを書く言葉。HyperText Markup Language の略です。`<h2>ようこそ</h2>` のように、`<` と `>` で囲んだ「タグ」で書きます |
+| CSS | 見た目（色、大きさ、余白など）を決める言葉。Cascading Style Sheets の略です |
+| JavaScript（JS） | ページを動かす言葉。ボタンを押したときの処理などを書きます。Java とは別の言語です |
+| `var` | 「変数（データを入れておく箱）」を作る言葉です。variable（変数）の略です。`var name = "山田";` は、`name` という箱に `"山田"` を入れる、という意味です |
+| `const` | 後から中身を変えない変数を作る言葉です。constant（定数）の略です |
+| 関数（function） | 処理のまとまりに名前を付けたものです。`function 名前() { ... }` の形で書き、`名前()` と書くと実行されます |
+| `async` / `await` | 通信のように、終わるまで時間がかかる処理を扱う言葉です。`await` は「終わるまで待つ」という意味です |
+| DOM | ブラウザーが HTML を読み取ってできた、ページの部品の一覧です。JavaScript は DOM を通してページを操作します。Document Object Model の略です |
+| `document` | 今開いているページ全体を表すものです |
+| `document.getElementById("id名")` | 指定した `id` を持つ部品（ボタンや入力欄など）を探します |
+| `addEventListener("click", ...)` | 「クリックされたら、この処理を実行する」と登録します |
+| `window` | ブラウザーの窓そのものです。`window.API_ENDPOINT` は、`config.js` で設定した値を取り出すときに使います |
+| `fetch` | ほかのサーバー（API）に要求を送る命令です |
+| JSON | データを文字で表す形式です。`{"name": "山田"}` のように書きます。JavaScript Object Notation の略です |
+
+### index.html（ページの骨組み・HTML）
+
+- `<head>` の中: 文字コード（`UTF-8`）、ページのタイトル、`styles.css` の読み込みを書いています。
+- `<header>` と `<nav>`: 画面上部のメニューです。`href="#photo1"` は、同じページ内の `id="photo1"` の場所へ移動するリンクです。
+- `<main>` の中の `<section>`: ページの各まとまり（ようこそ、風景、会員登録、料理のおすすめ）です。
+- `<form>` と `<input>`: 会員登録の入力欄です。`<label>` は入力欄の説明文です。
+- `<button id="registerButton">`: 「登録」ボタンです。`id` は、`app.js` からボタンを見つけるための名前です。
+- ページの最後の 2 行で、JavaScript を読み込んでいます。
+
+```html
+<script src="config.js"></script>
+<script src="app.js"></script>
+```
+
+`config.js` を先に読み込むのは、`app.js` が `config.js` の値を使うためです。順番を入れ替えないでください。
+
+### config.js（設定値）
+
+```javascript
+window.API_ENDPOINT = "";
+window.BEDROCK_API_ENDPOINT = "";
+```
+
+- `window.` を付けると、ほかのファイル（`app.js`）からも値を読めるようになります。
+- `""` は「まだ設定していない」という意味です。空のままだと、画面に「API URL は Session3 で設定します」と表示されます。
+- 設定する値は URL です。書き換え方は、[Session3 の 3-6](../Session3/README.md) で、URL の書き方を確認してください。
+
+### app.js（ページの動き・JavaScript）
+
+ボタンを押したときに、何をするかを書いています。
+
+1. `document.getElementById("registerButton").addEventListener("click", ...)`
+   - 「登録」ボタンがクリックされたら、`function` の中の処理を実行します。
+   - `async function` は、途中で `await`（通信の終わりを待つ）を使うための書き方です。
+2. `var form = document.getElementById("registrationForm");`
+   - 会員登録のフォームを、`form` という変数（箱）に入れています。
+3. `if (!form.reportValidity()) { return; }`
+   - 入力漏れがあれば、ここで処理を終えます。`return` は「ここで終わる」という意味です。
+4. `var apiEndpoint = (window.API_ENDPOINT || "").replace(/\/+$/, "");`
+   - `config.js` の値を取り出します。`||` は「左が空なら右の値を使う」という意味です。
+   - `.replace(/\/+$/, "")` は、URL の末尾にある `/` を取り除きます。
+5. `if (!apiEndpoint) { ... }`
+   - URL が未設定なら、メッセージを表示して終わります。
+6. `var user = Object.fromEntries(formData.entries());` と `user.age = Number(user.age);`
+   - 入力された内容を 1 つのデータ（オブジェクト）にまとめます。年齢は文字から数字に変換します。
+7. `await fetch(apiEndpoint + "/v1/users", { method: "POST", ... })`
+   - API に、データを送ります（`POST` は「登録の要求」の意味です）。
+   - `body: JSON.stringify(user)` は、JavaScript のデータを JSON の文字に変換して送るという意味です。
+   - `await` で、API からの返事を待ちます。
+8. `var result = await response.json();`
+   - 返事の JSON を、JavaScript のデータに戻します。
+9. `try { ... } catch (error) { ... }`
+   - `try` は「試す」、`catch` は「エラーを受け止める」という意味です。エラーが起きても画面が壊れず、「登録に失敗しました」などのメッセージを表示します。
+
+料理のおすすめのボタン（`recommendationButton`）も、同じ流れで書いています。違うのは、送る先（`/v1/recommendations`）と、受け取る項目（`result.answer`）だけです。
+
+### styles.css（見た目・CSS）
+
+```css
+header {
+    background-color: #005bac;
+    color: white;
+}
+```
+
+- `header` は「どの部品の見た目を変えるか」を表します。これを**セレクタ**と呼びます。
+- `{ ... }` の中には、「見た目の項目: 値;」を書きます。
+- `background-color` は背景色、`color` は文字の色です。`#005bac` は色を表す番号です。
+- `margin` は部品の外側の余白、`padding` は部品の内側の余白です。
+- `.blue-button` の `.` は、`class="blue-button"` が付いた部品をまとめて指定する意味です。
+- `:hover` は、マウスを乗せたときの見た目を指定します。
 
 ---
 
