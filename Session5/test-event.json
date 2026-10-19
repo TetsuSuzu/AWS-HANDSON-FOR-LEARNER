@@ -1,7 +1,7 @@
 {
   "version": "2.0",
-  "routeKey": "POST /v1/search-recommendations",
-  "rawPath": "/v1/search-recommendations",
+  "routeKey": "POST /",
+  "rawPath": "/",
   "headers": {
     "content-type": "application/json"
   },

@@ -178,6 +178,8 @@ def delete_user(user_id):
 
 
 ROUTES = {
+    # 会員登録は、API の URL そのもの（パスなし）に POST する
+    "POST /": lambda event, params: create_user(event),
     "POST /v1/users": lambda event, params: create_user(event),
     "GET /v1/users/{id}": lambda event, params: get_user(params["id"]),
     "GET /v1/users": lambda event, params: list_users(event.get("queryStringParameters") or {}),

@@ -75,7 +75,7 @@
    - `config.js`
 4. **「アップロード」** をクリック
 
-> 6 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session4 の設定後に使えます。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session5 の設定後に使えます。
 
 ---
 
@@ -191,7 +191,7 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session4 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session5 で設定します。
 
 > ハンズオン終了後は CloudFront ディストリビューションを無効化して削除し、S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
 
@@ -283,7 +283,7 @@ http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 
 ```javascript
 window.API_ENDPOINT = "";
-window.BEDROCK_API_ENDPOINT = "";
+window.SEARCH_API_ENDPOINT = "";
 ```
 
 - `window.` を付けると、ほかのファイル（`app.js`）からも値を読めるようになります。
@@ -308,7 +308,7 @@ window.BEDROCK_API_ENDPOINT = "";
    - URL が未設定なら、メッセージを表示して終わります。
 6. `var user = Object.fromEntries(formData.entries());` と `user.age = Number(user.age);`
    - 入力された内容を 1 つのデータ（オブジェクト）にまとめます。年齢は文字から数字に変換します。
-7. `await fetch(apiEndpoint + "/v1/users", { method: "POST", ... })`
+7. `await fetch(apiEndpoint, { method: "POST", ... })`（API の URL にそのまま POST する）
    - API に、データを送ります（`POST` は「登録の要求」の意味です）。
    - `body: JSON.stringify(user)` は、JavaScript のデータを JSON の文字に変換して送るという意味です。
    - `await` で、API からの返事を待ちます。
@@ -317,22 +317,22 @@ window.BEDROCK_API_ENDPOINT = "";
 9. `try { ... } catch (error) { ... }`
    - `try` は「試す」、`catch` は「エラーを受け止める」という意味です。エラーが起きても画面が壊れず、「登録に失敗しました」などのメッセージを表示します。
 
-料理のおすすめのボタン（`recommendationButton`）も、同じ流れで書いています。違うのは、送る先（`/v1/recommendations`）と、受け取る項目（`result.answer`）だけです。
+料理のおすすめのボタン（`recommendationButton`）も、同じ流れで書いています。違うのは、送る先（料理のおすすめの API の URL）と、受け取る項目（`result.answer`）だけです。
 
 ### styles.css（見た目・CSS）
 
 ```css
 header {
-    background-color: #005bac;
+    background-color: #2e7d32;
     color: white;
 }
 ```
 
 - `header` は「どの部品の見た目を変えるか」を表します。これを**セレクタ**と呼びます。
 - `{ ... }` の中には、「見た目の項目: 値;」を書きます。
-- `background-color` は背景色、`color` は文字の色です。`#005bac` は色を表す番号です。
+- `background-color` は背景色、`color` は文字の色です。`#2e7d32` は色を表す番号です。
 - `margin` は部品の外側の余白、`padding` は部品の内側の余白です。
-- `.blue-button` の `.` は、`class="blue-button"` が付いた部品をまとめて指定する意味です。
+- `.green-button` の `.` は、`class="green-button"` が付いた部品をまとめて指定する意味です。
 - `:hover` は、マウスを乗せたときの見た目を指定します。
 
 ---
@@ -358,7 +358,7 @@ header {
 
 ### AI おすすめ機能が動かない
 
-- `index.html` は書き換えず、Session4 で `Session1/config.js` の `window.BEDROCK_API_ENDPOINT`（Amplify なら同名の環境変数）に HTTP API の URL を設定します。このセッションの時点では、AI おすすめは「Session4 で設定します」と表示されるのが正常です
+- `index.html` は書き換えず、Session5 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT`（Amplify なら同名の環境変数）に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session5 で設定します」と表示されるのが正常です
 
 ---
 

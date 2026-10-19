@@ -7,7 +7,7 @@ body {
 }
 
 header {
-    background-color: #005bac;
+    background-color: #2e7d32;
     color: white;
     padding: 1rem 0;
     text-align: center;
@@ -52,7 +52,7 @@ section {
 }
 
 section h2 {
-    color: #005bac;
+    color: #2e7d32;
     margin-bottom: 1rem;
 }
 
@@ -79,9 +79,32 @@ form input {
     border-radius: 4px;
 }
 
+/* 料理のおすすめの入力欄（会員登録の入力欄と同じ、幅を固定する） */
+.fixed-input {
+    display: block;
+    width: 100%;
+    max-width: 500px;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* 登録成功の文字（緑の太字） */
+.success-message {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+/* 回答の改行をそのまま表示する */
+#recommendationStatus {
+    white-space: pre-wrap;
+}
+
 form button {
     padding: 0.75rem;
-    background-color: #005bac;
+    background-color: #2e7d32;
     color: white;
     border: none;
     border-radius: 4px;
@@ -91,11 +114,11 @@ form button {
 }
 
 form button:hover {
-    background-color: #004080;
+    background-color: #1b5e20;
 }
 
 footer {
-    background-color: #005bac;
+    background-color: #2e7d32;
     color: white;
     text-align: center;
     padding: 1rem 0;
@@ -104,8 +127,8 @@ footer {
     bottom: 0;
     box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
-    .blue-button {
-        background-color: blue;
+    .green-button {
+        background-color: #2e7d32;
         color: white;
         border: none;
         padding: 10px 20px;

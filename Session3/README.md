@@ -5,7 +5,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 開始前に [Session2](../Session2/README.md) の DynamoDB と Lambda を作成・テストしてください。
 
 > **API Gateway（HTTP API）とは？**
-> 外からの要求（HTTP リクエスト）を受け付けて、対応する Lambda に渡す入口です。URL のパス（`/v1/users` など）と、メソッド（GET、POST など）ごとに、どの処理に渡すかを決めます。
+> 外からの要求（HTTP リクエスト）を受け付けて、対応する Lambda に渡す入口です。このハンズオンでは、API の URL そのものが「会員登録」の入口になります。URL の後ろにパスは付けません。
 
 ## 3-1. API Gateway の画面を開く
 
@@ -31,12 +31,12 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 
 | メソッド | パス | 役割 |
 |---|---|---|
-| POST | `/v1/users` | 会員を登録する |
+| POST | `/`（パスなし） | 会員を登録する |
 
 ### 作り方
 
 1. ルートの画面で **ルートを追加** をクリック
-2. メソッドに **POST**、パスに `/v1/users` を入力し、統合先に `users-function-<名前>` を選ぶ
+2. メソッドに **POST** を選び、パスは `/`（何も入力しない）のまま、統合先に `users-function-<名前>` を選ぶ
 3. **次へ**
 
 > 一覧の取得・照会・更新・削除の API は、このセッションでは作りません。
@@ -61,7 +61,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 
 ### 確認ポイント
 
-- [ ] ルート `POST /v1/users` があり、`users-function-<名前>` につながっている
+- [ ] ルート `POST /`（パスなし）があり、`users-function-<名前>` につながっている
 - [ ] ステージが `$default`
 - [ ] API の URL を控えた
 
@@ -101,7 +101,7 @@ S3 ウェブサイトエンドポイントは HTTP です。CloudFront を利用
 
 > `API_ENDPOINT` はビルドでブラウザーに配信する設定値です。API URL は公開情報ですが、パスワードや秘密鍵などの秘密情報を環境変数に入れないでください。
 
-> Session4 で Bedrock API を追加するときは、同じ Amplify アプリの `BEDROCK_API_ENDPOINT` 環境変数も登録して再デプロイします。
+> 料理のおすすめの API は Session5 で作成し、同じ Amplify アプリの `SEARCH_API_ENDPOINT` 環境変数に登録して再デプロイします。
 
 ### 確認ポイント
 
@@ -144,7 +144,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 ```powershell
 $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
 $body = '{"id":"u-0001","name":"山田太郎","email":"taro@example.com","age":30,"address":"東京都千代田区1-1","tel":"09012345678"}'
-Invoke-RestMethod -Method Post -Uri "$api/v1/users" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```
 
 - 結果に `message` と `user` が出れば成功です。
@@ -154,7 +154,7 @@ Invoke-RestMethod -Method Post -Uri "$api/v1/users" -ContentType "application/js
 - [ ] POST で 201 相当の結果（`message` と `user`）が返る
 
 > **うまくいかないとき**
-> - 404 Not Found: パスの綴りを確認（`/v1/users` の `v1` を忘れていないか）
+> - 404 Not Found: URL の末尾に `/v1/users` などを付けていないか確認（URL はそのまま使います）
 > - 500 エラー: Lambda の CloudWatch Logs を確認（2-7 の権限やテーブル名を見直す）
 > - 日本語が文字化けして見える: PowerShell の表示の問題のことが多いです。データの中身は、Lambda の一覧で確かめてください。
 >
