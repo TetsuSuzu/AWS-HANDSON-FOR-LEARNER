@@ -47,8 +47,8 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 - `bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")`
   - Bedrock と通信するための接続を作ります。`region_name` は、Bedrock を使う AWS のリージョン（場所）です。
-- `MODEL_ID = "global.anthropic.claude-sonnet-4-6"`
-  - 使う AI モデルの名前です。
+- `MODEL_ID = os.environ["MODEL_ID"]`
+  - 使う AI モデルの名前です。値は、コードではなく Lambda の環境変数から読みます。そのため、モデルを変えるときはコードを書き換えず、環境変数の値だけを変えます。
 - `MAX_PROMPT_LENGTH = 1000`
   - 入力できる文字数の上限です。長すぎる入力は、ここで弾きます。
 - `def lambda_handler(event, context):`
@@ -101,6 +101,21 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 4. 関数の **コード** タブで `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
 5. **Deploy（デプロイ）** をクリックする。ハンドラーは `lambda_function.lambda_handler` にする
 6. **設定** → **一般設定** → **編集** でタイムアウトを **1 分** にする
+
+### 環境変数 MODEL_ID を設定する
+
+このプログラムは、使う AI モデルを環境変数 `MODEL_ID` から読みます。設定しないと、Lambda は起動時にエラー（`KeyError: 'MODEL_ID'`）になります。
+
+1. Lambda の画面で **設定** タブ → **環境変数** → **編集**
+2. **環境変数を追加** をクリックし、次を入力する
+
+   | キー | 値 |
+   |---|---|
+   | `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
+
+3. **保存**
+
+> **モデルを変えたいとき**: コードは変えず、この値だけを変えて保存します。変える前に、東京リージョン（`ap-northeast-1`）の Bedrock でそのモデルが使えるかを確認してください。
 
 ## 2. Lambda 実行ロールに Bedrock 権限を付ける
 

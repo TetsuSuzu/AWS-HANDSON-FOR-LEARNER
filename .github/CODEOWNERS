@@ -21,5 +21,8 @@ Session3/  @TetsuSuzu
 # Session4: Amazon Bedrock
 Session4/  @TetsuSuzu
 
+# Session5: 検索ツール（tool_use）
+Session5/  @TetsuSuzu
+
 # ドキュメント（README）
 *.md  @TetsuSuzu

@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /v1/search-recommendations",
+  "rawPath": "/v1/search-recommendations",
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body": "{\"prompt\":\"東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください\"}",
+  "isBase64Encoded": false
+}
