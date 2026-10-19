@@ -12,7 +12,6 @@ Lambda（users-function-<名前>）
 
 ## 事前準備
 
-- [Session0](../Session0/README.md) のハンズオン環境を準備する
 - AWS マネジメントコンソールのリージョンを **アジアパシフィック（東京）ap-northeast-1** にする
 - `<名前>` は半角英数字で自分の名前に置き換え、Session2 と Session3 で同じ名前を使う
 

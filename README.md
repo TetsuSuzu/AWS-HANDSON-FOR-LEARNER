@@ -6,7 +6,6 @@ S3 で静的ウェブサイトを公開し、DynamoDB・Lambda・API Gateway で
 
 | 順番 | セッション | 内容 |
 |---|---|---|
-| 事前 | [Session0](Session0/README.md) | ハンズオン環境のセットアップ |
 | 1 | [Session1](Session1/README.md) | S3 静的ウェブサイトを作成・公開する |
 | 2 | [Session2](Session2/README.md) | DynamoDB テーブルと Lambda 関数を作成・テストする |
 | 3 | [Session3](Session3/README.md) | HTTP API を作成し、CORS とサイト接続を設定する |
@@ -14,7 +13,7 @@ S3 で静的ウェブサイトを公開し、DynamoDB・Lambda・API Gateway で
 | 5 | [Session5](Session5/README.md) | Cognito ログインで会員 API を保護する |
 | 7 | [Session7](Session7/README.md) | 管理者用会員管理（旧教材） |
 
-まず Session0 を完了してから Session1〜5 を順番に進めてください。Session7 は旧教材として残しています。新しい API のリソース名・構成とは互換性がない部分があるため、続けて実施する場合は各手順を読み替えてください。
+Session1〜5 を順番に進めてください。Session7 は旧教材として残しています。新しい API のリソース名・構成とは互換性がない部分があるため、続けて実施する場合は各手順を読み替えてください。
 
 ## フォルダ構成
 
