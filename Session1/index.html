@@ -70,9 +70,8 @@
         <section id="recommendation">
             <h2>旅行先の料理を AI に相談</h2>
             <p>食べたい料理や旅行先を入力してください。</p>
-            <label for="recommendationPrompt">希望</label>
-            <textarea id="recommendationPrompt" rows="3" maxlength="1000" placeholder="例：長野でそばを食べたい"></textarea>
-            <p><button type="button" id="recommendationButton" class="blue-button">おすすめを表示</button></p>
+            <input id="recommendationPrompt" class="fixed-input" type="text" maxlength="1000" placeholder="例：長野でそばを食べたい">
+            <p><button type="button" id="recommendationButton" class="green-button">おすすめを表示</button></p>
             <div id="recommendationStatus" aria-live="polite"></div>
         </section>
     </main>

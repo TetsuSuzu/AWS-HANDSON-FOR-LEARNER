@@ -1,12 +1,12 @@
 # Session4 — Amazon Bedrock で旅行先の料理をおすすめする
 
-Session1 のサイトに入力された希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
+利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
 
 ## 構成
 
 ```text
 Session1 のブラウザー
-   │ POST /v1/recommendations
+   │ POST（API の URL そのもの。パスなし）
    ▼
 API Gateway HTTP API（ap-northeast-1）
    │
@@ -80,7 +80,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 テストイベントは、API Gateway が送ってくるはずの要求を、手で作った例です。Lambda の画面で「テスト」を押すときに使います。
 
-- `routeKey`: `POST /v1/recommendations` を指定し、このプログラムを呼び出します。
+- `routeKey`: `POST /` を指定し、このプログラムを呼び出します。
 - `body`: 希望の文章です。JSON の文字の中にもう一度 JSON が入っているため、`\"` のように書いています。
 
 ---
@@ -157,7 +157,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 1. リージョンが `ap-northeast-1` のまま **API Gateway** を開く
 2. **API を作成** → **HTTP API** → **構築** を選ぶ
 3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
-4. ルートに `POST /v1/recommendations` を追加し、統合先が上記 Lambda であることを確認する
+4. ルートに `POST /`（パスなし）を追加し、統合先が上記 Lambda であることを確認する
 5. ステージは `$default`、自動デプロイを有効にして作成する
 6. API の詳細に表示される URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
 
@@ -177,27 +177,30 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 ブラウザーで確認するときは実際の公開元 URL とスキームを許可します。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
 
-## 6. Session1 のサイトに API URL を設定する
+## 6. API の URL で動作を確かめる
 
-1. `Session1/config.js` を編集し、Session3 で設定した `API_ENDPOINT` を残したまま、次の行を追加する
+この API の URL は、PowerShell などから直接呼び出して確かめます。Session1 のサイトのおすすめ欄は、Session5 の API を使います（Session5 で設定します）。
 
-   ```javascript
-   window.BEDROCK_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
+1. API Gateway の `travel-recommendation-api-<名前>` の概要で、URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾に `/` は付けない
+2. PowerShell で、次のように呼び出す
+
+   ```powershell
+   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+   $body = '{"prompt":"長野でそばを食べたい"}'
+   $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+   (Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body $bytes).answer
    ```
 
-2. S3 へ公開している場合は `Session1/index.html`、`Session1/app.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下に再アップロードする。CloudFront を使う場合は `/*` を Invalidation する
-3. Amplify を使う場合は環境変数 `BEDROCK_API_ENDPOINT` に API URL を追加して再デプロイする
-4. Session1 のサイトを HTTPS（CloudFront または Amplify）で開き、おすすめ欄に「長野でそばを食べたい」などと入力してボタンを押す
-5. Bedrock からの日本語回答が画面に表示されれば成功
+3. Bedrock からの日本語回答が表示されれば成功です
 
 > `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
 
 ## 確認ポイント
 
 - [ ] Lambda のテストで `statusCode: 200` が返る
-- [ ] HTTP API に `POST /v1/recommendations` がある
+- [ ] HTTP API に `POST /`（パスなし）がある
 - [ ] サイトのオリジンが API CORS で許可されている
-- [ ] Session1 のサイトから日本語のおすすめを取得できる
+- [ ] PowerShell で、日本語のおすすめを取得できる
 
 ## 片付け
 

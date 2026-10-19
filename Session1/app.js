@@ -18,7 +18,7 @@ document.getElementById("registerButton").addEventListener("click", async functi
     status.textContent = "登録しています...";
 
     try {
-        var response = await fetch(apiEndpoint + "/v1/users", {
+        var response = await fetch(apiEndpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(user)
@@ -27,9 +27,12 @@ document.getElementById("registerButton").addEventListener("click", async functi
         if (!response.ok) {
             throw new Error(result.message || "登録に失敗しました");
         }
-        status.textContent = result.message || "登録が完了しました。";
+        status.textContent = "登録が完了しました。";
+        status.className = "success-message";
+        alert("会員登録しました。");
         form.reset();
     } catch (error) {
+        status.className = "";
         status.textContent = "登録に失敗しました: " + error.message;
     }
 });
@@ -37,19 +40,19 @@ document.getElementById("registerButton").addEventListener("click", async functi
 document.getElementById("recommendationButton").addEventListener("click", async function() {
     var prompt = document.getElementById("recommendationPrompt").value.trim();
     var status = document.getElementById("recommendationStatus");
-    var endpoint = (window.BEDROCK_API_ENDPOINT || "").replace(/\/+$/, "");
+    var endpoint = (window.SEARCH_API_ENDPOINT || "").replace(/\/+$/, "");
     if (!prompt) {
         status.textContent = "希望を入力してください。";
         return;
     }
     if (!endpoint) {
-        status.textContent = "Bedrock API URL は Session4 で設定します。";
+        status.textContent = "料理のおすすめの API URL は Session5 で設定します。";
         return;
     }
 
     status.textContent = "おすすめを考えています...";
     try {
-        var response = await fetch(endpoint + "/v1/recommendations", {
+        var response = await fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt: prompt })

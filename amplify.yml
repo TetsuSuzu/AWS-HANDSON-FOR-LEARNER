@@ -5,7 +5,7 @@ applications:
       phases:
         build:
           commands:
-            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.BEDROCK_API_ENDPOINT = ${JSON.stringify(process.env.BEDROCK_API_ENDPOINT || "")};\n`);'
+            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.SEARCH_API_ENDPOINT = ${JSON.stringify(process.env.SEARCH_API_ENDPOINT || "")};\n`);'
       artifacts:
         baseDirectory: .
         files:

@@ -11,7 +11,7 @@ S3 で静的ウェブサイトを公開し、DynamoDB・Lambda・API Gateway で
 | 2 | [Session2](Session2/README.md) | DynamoDB テーブルと Lambda 関数を作成・テストする |
 | 3 | [Session3](Session3/README.md) | HTTP API を作成し、CORS とサイト接続を設定する |
 | 4 | [Session4](Session4/README.md) | Amazon Bedrock で料理のおすすめを生成する |
-| 5 | [Session5](Session5/README.md) | 検索ツール（tool_use）を使い、回答の精度を比べる |
+| 5 | [Session5](Session5/README.md) | 店リストを tool_use で読み、回答の精度を比べる |
 
 Session0 で教材を入手してから、Session1〜4 を順番に進めてください。
 
@@ -44,9 +44,10 @@ AWS-HANDSON-FOR-LEARNER/
 │   ├── README.md
 │   ├── lambda_function.py     Bedrock を呼び出す Lambda コード
 │   └── test-event.json        Lambda のテストイベント
-├── Session5/                  検索ツール（tool_use）で回答の精度を比べる
+├── Session5/                  店リストを tool_use で読み、回答の精度を比べる
 │   ├── README.md
-│   ├── lambda_function.py     検索ツールを使う Lambda コード
+│   ├── lambda_function.py     店リストを読む Lambda コード
+│   ├── shops.txt              ランチマップから作った店リスト
 │   └── test-event.json        Lambda のテストイベント
 ├── amplify.yml                Amplify Hosting 用のビルド設定
 ├── README.md                  この案内

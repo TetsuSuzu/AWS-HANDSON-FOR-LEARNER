@@ -1,6 +1,6 @@
-# Session5 — 検索ツールを使って、回答の精度が上がるかを確かめる
+# Session5 — 店リストを tool_use で読んで、回答の精度を比べる
 
-Session4 では、AI に何も調べさせずに料理のおすすめを答えてもらいました。Session5 では、同じ質問を **検索ツール（tool_use）** を使える形で AI に送り、インターネットの公開情報を取りながら答えさせます。そして、2 つの回答の精度を比べます。
+Session4 では、AI に何も調べさせずに料理のおすすめを答えてもらいました。Session5 では、作成者のマップ「ランチマップ」から作った **店リスト**（`shops.txt`）を、AI がツール（tool_use）で読んで答えます。同じ質問を Session4（ツールなし）と比べ、精度が上がるかを確かめます。
 
 例の質問は「**東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください**」です。
 
@@ -8,44 +8,39 @@ Session4 では、AI に何も調べさせずに料理のおすすめを答え�
 
 ```text
 Session1 のサイト（料理のおすすめ欄）
-   │ POST /v1/recommendations（Session4・ツールなし）
-   │ POST /v1/search-recommendations（Session5・ツールあり）
+   │ 料理のおすすめ（Session5・ツールあり）＝ travel-search-api-<名前> の URL
    ▼
-API Gateway HTTP API（Session4 で作成した travel-recommendation-api-<名前>）
+API Gateway HTTP API（travel-search-api-<名前>。URL そのものが入口で、パスは付けない）
    │
    ▼
 Lambda（travel-search-function-<名前>）
    │
-   ├── Amazon Bedrock（Claude Sonnet 4.6）… 「検索が必要か」を判断する
-   │        ▲ 検索結果を受け取り、回答を書く
+   ├── Amazon Bedrock（Claude Sonnet 4.6）… 店リストを読むかを判断する
+   │        ▲ 店リストを受け取り、その中から回答を書く
    │
-   └── Brave Search API … 検索結果（タイトル・URL・要約）を返す
+   └── shops.txt（ランチマップから作った店リスト。Lambda と同じフォルダに置く）
 ```
+
+外部の検索サービスは使いません。キーも不要です。
 
 ## tool_use とは
 
 **tool_use** は、AI が「自分では分からないことを、道具（ツール）で調べる」仕組みです。
 
-1. 私たちは、AI に「`web_search` という検索ツールを使ってよい」と伝える
-2. AI は質問を読み、「店の住所は検索して確かめよう」と判断して、ツールの使用を依頼する（検索キーワードを決める）
-3. Lambda がツールを実行し（実際に検索 API を呼ぶ）、結果を AI に返す
-4. AI は検索結果を読んで、回答を書く
+1. 私たちは、AI に「`get_map_shops` という店リストを読むツールを使ってよい」と伝える
+2. AI は質問を読み、「店リストを見よう」と判断して、ツールの使用を依頼する
+3. Lambda がツールを実行し、店リストを AI に返す
+4. AI は店リストの中から、質問に合う店を選んで回答を書く
 
-AI は、検索結果を「読んだ上で」答えるため、推測だけで答えるより、正確になりやすいと期待できます。ただし、検索結果が古い、間違っている、ということもあります。そのため、この Session では **最後に自分で確かめます**。
+AI は、店リストを「読んだ上で」答えるため、推測だけで答えるより、実在する店を挙げやすくなると期待できます。ただし、リストに無い店を作ってしまうこともあります。そのため、この Session では **最後に自分で確かめます**。
 
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了している
 - Session4 の Lambda 実行ロール（Bedrock の権限を付けたもの）の名前を控える
+- `Session5` フォルダの `lambda_function.py` と `shops.txt` を用意する
 
-### 検索 API のキーを受け取る
-
-このハンズオンで使う Brave Search API のキーは、講師が用意して配布します。受講者が自分でアカウントを作る必要はありません。
-
-> **注意**
-> - 配布された API キーは、他人に教えたり、Session1 のサイトや GitHub に書いたりしないでください。このハンズオンでは、Lambda の環境変数に入れます。
-> - 検索結果の利用は、Brave Search API の利用規約に従ってください。
-> - 食べログなどのサイトを、プログラムで直接読み取るのは、この Session では行いません。サイトの利用規約で禁止されている場合があるためです。検索 API が返した結果（タイトル・URL・要約）だけを使います。
+> **店リストについて**: `shops.txt` は、作成者の Google マイマップ「ランチマップ」の店を一覧にしたものです。カテゴリ、店名、ひとことメモが入っています。住所や営業時間は入っていません。
 
 ## 1. Lambda 関数を作成する
 
@@ -62,35 +57,35 @@ AI は、検索結果を「読んだ上で」答えるため、推測だけで�
 
 4. **関数の作成** をクリック
 
-### コードを貼り付ける
+### コードと店リストを配置する
 
-1. **コード** タブで `lambda_function.py` を開く
-2. `Session5/lambda_function.py` の内容をすべてコピーし、エディターの内容を置き換える
+1. **コード** タブで `lambda_function.py` の内容を、`Session5/lambda_function.py` の内容で置き換える
+2. `Session5/shops.txt` を、Lambda のコードと同じフォルダに置く。コンソールの「アップロード元」で **.zip ファイル** を使う場合は、`lambda_function.py` と `shops.txt` を一緒に zip にします
 3. **Deploy（デプロイ）** をクリックする
-4. **ランタイム設定** → **編集** → **ハンドラー** を `lambda_function.handler` にして保存する
+4. **ランタイム設定** → **編集** → **ハンドラー** を `lambda_function.lambda_handler` にして保存する
 
 ### 環境変数を設定する
 
-**設定** → **環境変数** → **編集** で、次の 2 つを追加します。
+**設定** → **環境変数** → **編集** で、次を追加します。
 
 | キー | 値 |
 |---|---|
 | `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
-| `BRAVE_API_KEY` | 講師から配布された API キー |
 
-> `MODEL_ID` は Session4 と同じ値です。環境変数にしているので、モデルを変えるときはコードを書き換えず、この値だけを変えます。
+> `MODEL_ID` は Session4 と同じ値です。モデルを変えるときは、コードを書き換えず、この値だけを変えます。
 
 ### タイムアウトを延ばす
 
-AI の回答と検索を行うため、Lambda の既定の時間では足りないことがあります。
+AI の回答と店リストの読み込みを行うため、既定の時間では足りないことがあります。
 
 1. **設定** → **一般設定** → **編集**
 2. **タイムアウト** を **30 秒** にして保存する
 
 ### 確認ポイント
 
-- [ ] ランタイムが Python 3.12、ハンドラーが `lambda_function.handler`
-- [ ] 環境変数に `MODEL_ID` と `BRAVE_API_KEY` がある
+- [ ] ランタイムが Python 3.12、ハンドラーが `lambda_function.lambda_handler`
+- [ ] 環境変数 `MODEL_ID` がある
+- [ ] `shops.txt` が `lambda_function.py` と同じフォルダにある
 - [ ] タイムアウトが 30 秒
 
 ## 2. テストする（Lambda 単体）
@@ -98,78 +93,82 @@ AI の回答と検索を行うため、Lambda の既定の時間では足りな�
 1. Lambda の画面で **テスト** タブ → **新しいイベント**
 2. イベント名を `search-recommendation` にする
 3. `Session5/test-event.json` の内容を貼り付けて **保存** → **テスト**
-4. 実行結果の `body` に、`answer`（回答）と `sources`（参照した URL の一覧）が入っていれば成功です。
+4. 実行結果の `body` に、`answer`（回答）と `sources`（参照したマップの名前）が入っていれば成功です。
 
 > **エラーが出たら**: 実行結果と、**モニタリング** → **CloudWatch Logs** のログを確認します。
-> - `KeyError: 'BRAVE_API_KEY'` や `KeyError: 'MODEL_ID'` → 環境変数を確認する
+> - `KeyError: 'MODEL_ID'` → 環境変数を確認する
+> - `FileNotFoundError` で `shops.txt` が見つからない → `shops.txt` が Lambda のコードと同じフォルダにあるかを確認する
 > - `AccessDeniedException` → Session4 の Bedrock 権限を確認する
-> - 検索に失敗する場合は、API キーが正しいか、プランが有効かを確認する
 
-## 3. API にルートを追加する
+## 3. 検索用の HTTP API を作成する
 
-Session4 で作成した `travel-recommendation-api-<名前>` に、新しいルートを追加します。
+Session4 とは別に、検索用の HTTP API を作ります。Session4 の API とは、URL を分けるためです。
 
-1. API Gateway で `travel-recommendation-api-<名前>` を開く
-2. **ルート** → **ルートを作成** で、次を入力する
+1. API Gateway で **API を作成** → **HTTP API** → **構築** を選ぶ
+2. **統合** で **Lambda** を選び、`travel-search-function-<名前>` を指定する。API 名は `travel-search-api-<名前>`。ペイロード形式は **2.0**
+3. **ルート** で、次を入力する
 
    | 項目 | 値 |
    |---|---|
    | メソッド | `POST` |
-   | パス | `/v1/search-recommendations` |
+   | パス | `/`（何も入力しない） |
 
-3. 作成したルートの **統合** に、`travel-search-function-<名前>` を選んで接続する
-4. `$default` ステージで自動デプロイが有効であることを確認する
+4. **次へ** → **作成**。ステージは `$default` のまま、自動デプロイを有効にする
+5. **CORS** で、Session1 のサイトのオリジンを許可する（`POST`、`OPTIONS`、`content-type`）
+6. 概要に表示される API の URL を控える（末尾に `/` は付けない）
+7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードする（Amplify の場合は環境変数 `SEARCH_API_ENDPOINT`）
 
-> CORS の設定は Session4 のままで使えます（`POST` と `content-type` を許可済みのはずです）。
+   ```javascript
+   window.SEARCH_API_ENDPOINT = "<控えた URL>";
+   ```
+
 
 ## 4. 同じ質問で 2 つの回答を比べる
 
-PowerShell で、同じ質問を 2 つの API に送ります。`<API の URL>` は Session4 の API の URL に置き換えてください（末尾に `/` は付けません）。
+PowerShell で、同じ質問を 2 つの API に送ります。A は Session4 の API の URL、B は手順 3 で作った検索用の API の URL を使います（末尾に `/` は付けません）。
 
 ```powershell
-$api = "<API の URL>"
-$body = '{"prompt":"東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください"}'
-$bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+$bytes = [System.Text.Encoding]::UTF8.GetBytes('{"prompt":"東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください"}')
 
-# A: ツールなし（Session4）
-$a = Invoke-RestMethod -Method Post -Uri "$api/v1/recommendations" -ContentType "application/json; charset=utf-8" -Body $bytes
+# A: ツールなし（Session4 の API の URL）
+$apiA = "<Session4 の API の URL>"
+$a = Invoke-RestMethod -Method Post -Uri $apiA -ContentType "application/json; charset=utf-8" -Body $bytes
 $a.answer
 
-# B: 検索ツールあり（Session5）
-$b = Invoke-RestMethod -Method Post -Uri "$api/v1/search-recommendations" -ContentType "application/json; charset=utf-8" -Body $bytes
+# B: 店リストのツールあり（Session5 の API の URL）
+$apiB = "<検索用の API の URL>"
+$b = Invoke-RestMethod -Method Post -Uri $apiB -ContentType "application/json; charset=utf-8" -Body $bytes
 $b.answer
-$b.sources | Format-Table title, url
+$b.sources
 ```
 
 - `A` は、AI の知識だけで答えた回答です。
-- `B` は、検索結果を使った回答です。`sources` に、参照した URL が出ます。
+- `B` は、店リストを読んだ上で答えた回答です。`sources` に、参照したマップの名前が出ます。
 
 ## 5. 精度を確かめる
 
-B の `sources` の URL を実際に開き、回答の内容を一つずつ照合します。次の表に、A と B の結果を書き込んでください。
+B の回答に出てきた店が、`shops.txt` に本当にあるかを確かめます。次の表に、A と B の結果を書き込んでください。
 
-| 確かめる項目 | A（ツールなし） | B（検索あり） | 参照 URL で確認できたか |
-|---|---|---|---|
-| 店名は実在するか | | | |
-| 住所は正しいか | | | |
-| 八重洲口から徒歩で行けるか | | | |
-| 営業時間・定休日は書かれているか | | | |
-| 書かれている情報の出どころ（URL）があるか | | | |
+| 確かめる項目 | A（ツールなし） | B（店リストあり） |
+|---|---|---|
+| 挙げた店は、店リストに載っているか | | |
+| 店名は正しく書けているか | | |
+| カテゴリ（とんかつ、カレーなど）と合っているか | | |
+| 店リストに無い店を挙げていないか | | |
 
 **精度の判断の目安**
-- 実在しない店名や、違う場所の住所があれば、その項目は「誤り」とします。
-- 参照 URL で確認できない情報は、「根拠なし」とします。
-- B が A より誤りや根拠なしを減らせたかを確かめます。
+- 店リストに無い店を挙げていたら、その店は「誤り」とします。
+- 店名の誤字や、別の店と混ざっている場合も「誤り」とします。
+- B が A より誤りを減らせたかを確かめます。
 
-> **ふりかえり**: 検索を使っても、必ず正しくなるわけではありません。検索結果そのものが古い、または不正確なこともあります。「URL を示させる」「自分で確認する」という 2 つを組み合わせることが、AI を使う上で大切です。
+> **ふりかえり**: 店リストを読ませても、必ず正しくなるわけではありません。店リストに無い店を挙げる、という誤りは起きます。「情報源を示させる」「自分で照合する」の 2 つを組み合わせることが、AI を使う上で大切です。
 
 ## 片付け
 
 ハンズオンが終わったら、次の順番で削除してください。
 
-1. API Gateway → `travel-recommendation-api-<名前>` の **ルート** から `POST /v1/search-recommendations` を削除する
+1. API Gateway → `travel-search-api-<名前>` を削除する
 2. Lambda → `travel-search-function-<名前>` を削除する
-3. 配布された API キーは、ハンズオン終了後に講師が無効化します。受講者の画面からキーを消してください（Lambda の環境変数から削除）
 
 ## 次へ
 

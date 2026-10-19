@@ -35,7 +35,7 @@ Lambda（users-function-<名前>）
 
 `app.py` は、API から呼ばれて会員データを DynamoDB に保存・取得・削除する Python のプログラムです。全体は次の順番で動きます。
 
-1. API Gateway から要求が届く（例: `POST /v1/users`）
+1. API Gateway から要求が届く（例: `POST /`。URL そのものが入口）
 2. Lambda が `handler` を呼ぶ
 3. `handler` が `ROUTES` の表で、要求に対応する処理を選ぶ
 4. 選ばれた処理（`create_user` など）が、DynamoDB を読み書きする
@@ -55,7 +55,7 @@ Lambda（users-function-<名前>）
 | `event` | API Gateway から届く、要求の中身です。`body`（送られたデータ）や `routeKey`（メソッドとパス）が入っています |
 | `context` | Lambda の実行情報です。このプログラムでは使っていません |
 | `handler` | Lambda が最初に呼ぶ関数です。Lambda の画面の「ハンドラー」に、`lambda_function.handler` などと書いて教えます |
-| `routeKey` | `POST /v1/users` のような、「メソッドとパスの組み合わせ」です |
+| `routeKey` | `POST /` のような、「メソッドと URL の組み合わせ」です |
 | `os.environ` | Lambda の環境変数（外から渡す設定）を読むための場所です。`TABLE_NAME` を読んでいます |
 | 正規表現（`re`） | 文字の形のルールを書く方法です。`EMAIL_PATTERN` は、メールアドレスの形かどうかを調べるルールです |
 | DynamoDB | AWS のデータベースです。`users-table-<名前>` という表に会員を保存します |
@@ -73,7 +73,7 @@ Lambda（users-function-<名前>）
 - **`list_users(query)`**: 全件を取得します（`scan`）。一度に取る件数は `limit` で決め、`nextToken` で次のページを取ります。
 - **`update_user(user_id, event)`**: 会員の内容を書き換えます（`put_item`）。
 - **`delete_user(user_id)`**: 会員を削除します（`delete_item`）。
-- **`ROUTES`**: `"POST /v1/users"` という文字と、呼び出す関数の対応表です。
+- **`ROUTES`**: `"POST /"` という文字と、呼び出す関数の対応表です。
 - **`handler(event, context)`**: 要求の `routeKey` を `ROUTES` で探し、対応する処理を実行します。`except ApiError` は想定内のエラー、`except Exception` は想定外のエラーです。想定外のエラーは詳細を返さず、CloudWatch Logs に記録します。
 
 ### 返す番号（statusCode）の意味
@@ -92,7 +92,7 @@ Lambda（users-function-<名前>）
 
 テストイベントは、API Gateway が送ってくるはずの要求を、手で作った例です。Lambda の画面で「テスト」を押すときに使います。
 
-- `routeKey`: どの処理を呼ぶかを決めます（例: `POST /v1/users`）。
+- `routeKey`: どの処理を呼ぶかを決めます（例: `POST /`）。
 - `body`: 送るデータです。JSON を文字にした中に、もう一度 JSON が入っているため、`\"` のように `\` で引用符を書いています。
 - `queryStringParameters`: URL の `?limit=20` のような部分です。
 
