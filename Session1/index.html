@@ -16,8 +16,6 @@
                 <li><a href="#photo2">おすすめ風景②</a></li>
                 <li><a href="#signup">会員登録</a></li>
                 <li><a href="#recommendation">料理のおすすめ</a></li>
-                <li><button type="button" id="loginButton">ログイン</button></li>
-                <li><button type="button" id="logoutButton" hidden>ログアウト</button></li>
             </ul>
         </nav>
     </header>
@@ -80,12 +78,10 @@
     </main>
 
     <footer>
-        <p id="authStatus" aria-live="polite"></p>
         <p>© 2026 View AWS勉強会サイト. All rights reserved.</p>
     </footer>
 
     <script src="config.js"></script>
-    <script src="auth.js"></script>
     <script>
     document.getElementById("registerButton").addEventListener("click", async function() {
         var form = document.getElementById("registrationForm");
@@ -106,11 +102,11 @@
         status.textContent = "登録しています...";
 
         try {
-            var response = await window.apiFetch(apiEndpoint + "/v1/users", {
+            var response = await fetch(apiEndpoint + "/v1/users", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(user)
-            }, true);
+            });
             var result = await response.json();
             if (!response.ok) {
                 throw new Error(result.message || "登録に失敗しました");
@@ -137,7 +133,7 @@
 
         status.textContent = "おすすめを考えています...";
         try {
-            var response = await window.apiFetch(endpoint + "/v1/recommendations", {
+            var response = await fetch(endpoint + "/v1/recommendations", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ prompt: prompt })
