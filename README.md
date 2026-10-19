@@ -11,9 +11,8 @@ S3 で静的ウェブサイトを公開し、DynamoDB・Lambda・API Gateway で
 | 2 | [Session2](Session2/README.md) | DynamoDB テーブルと Lambda 関数を作成・テストする |
 | 3 | [Session3](Session3/README.md) | HTTP API を作成し、CORS とサイト接続を設定する |
 | 4 | [Session4](Session4/README.md) | Amazon Bedrock で料理のおすすめを生成する |
-| 7 | [Session7](Session7/README.md) | 管理者用会員管理（旧教材） |
 
-Session0 で教材を入手してから、Session1〜4 を順番に進めてください。Session7 は旧教材として残しています。新しい API のリソース名・構成とは互換性がない部分があるため、続けて実施する場合は各手順を読み替えてください。
+Session0 で教材を入手してから、Session1〜4 を順番に進めてください。
 
 ## フォルダ構成
 
@@ -48,4 +47,3 @@ Session1 の S3 バケット名に使う `lastname-firstname` と、Session2〜4
 
 - Session1 の S3 静的ウェブサイトは公開設定です。個人情報、パスワード、認証情報、秘密鍵などはアップロードしないでください。
 - Session2〜4 で作成した AWS リソースは、ハンズオン終了後に各手順の案内に従って削除してください。特に Session4 の Bedrock 呼び出しは従量課金です。
-- `Session7` は以前の教材を繰り下げて残しています。旧リソース名や構成を前提とするため、新 Session1〜4 との互換性を確認してから実施してください。
