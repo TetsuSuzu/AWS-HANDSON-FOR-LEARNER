@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 
 import boto3
 from botocore.exceptions import ClientError
@@ -8,7 +9,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")
-MODEL_ID = "global.anthropic.claude-sonnet-4-6"
+# 使うモデルは Lambda の環境変数 MODEL_ID で指定する（コードを変えずに差し替えられる）
+MODEL_ID = os.environ["MODEL_ID"]
 MAX_PROMPT_LENGTH = 1000
 
 

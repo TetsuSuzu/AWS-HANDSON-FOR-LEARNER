@@ -11,6 +11,7 @@ S3 で静的ウェブサイトを公開し、DynamoDB・Lambda・API Gateway で
 | 2 | [Session2](Session2/README.md) | DynamoDB テーブルと Lambda 関数を作成・テストする |
 | 3 | [Session3](Session3/README.md) | HTTP API を作成し、CORS とサイト接続を設定する |
 | 4 | [Session4](Session4/README.md) | Amazon Bedrock で料理のおすすめを生成する |
+| 5 | [Session5](Session5/README.md) | 検索ツール（tool_use）を使い、回答の精度を比べる |
 
 Session0 で教材を入手してから、Session1〜4 を順番に進めてください。
 
@@ -36,6 +37,10 @@ Session3/
 Session4/
   README.md                 Bedrock API 作成手順
   lambda_function.py        Bedrock を呼び出す Lambda
+  test-event.json           Lambda テストイベント
+Session5/
+  README.md                 検索ツール（tool_use）の手順
+  lambda_function.py        検索ツールを使う Lambda
   test-event.json           Lambda テストイベント
 amplify.yml                 Amplify Hosting 用ビルド設定
 ```
