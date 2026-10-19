@@ -18,31 +18,39 @@ Session0 で教材を入手してから、Session1〜4 を順番に進めてく�
 ## フォルダ構成
 
 ```text
-Session1/
-  README.md                 S3 静的サイト作成手順
-  index.html                ウェブページ（HTML）
-  app.js                    ウェブページの動き（JavaScript）
-  styles.css                ページのスタイル
-  photo1.png, photo2.png    サイトで使用する画像
-  config.js                 API URL の設定（Session3・4 で設定）
-  Bucketpolicy.txt          公開読み取り用の例
-Session2/
-  README.md                 セッション案内
-  01-dynamodb.md            DynamoDB 作成手順
-  02-lambda.md              Lambda 作成・設定・テスト手順
-  app.py                    Lambda の Python コード
-  test-events/              Lambda テストイベント
-Session3/
-  README.md                 HTTP API、CORS、サイト公開・接続手順
-Session4/
-  README.md                 Bedrock API 作成手順
-  lambda_function.py        Bedrock を呼び出す Lambda
-  test-event.json           Lambda テストイベント
-Session5/
-  README.md                 検索ツール（tool_use）の手順
-  lambda_function.py        検索ツールを使う Lambda
-  test-event.json           Lambda テストイベント
-amplify.yml                 Amplify Hosting 用ビルド設定
+AWS-HANDSON-FOR-LEARNER/
+├── Session0/                  教材の入手手順（git clone / zip）
+│   └── README.md
+├── Session1/                  S3 静的サイト（HTML・JavaScript・CSS）
+│   ├── README.md              S3 作成手順
+│   ├── index.html             ウェブページ（HTML）
+│   ├── app.js                 ページの動き（JavaScript）
+│   ├── config.js              API URL の設定（Session3・4 で設定）
+│   ├── styles.css             ページのデザイン（CSS）
+│   ├── photo1.png             画像（おすすめ風景①）
+│   ├── photo2.png             画像（おすすめ風景②）
+│   └── Bucketpolicy.txt       公開読み取り用のバケットポリシー例
+├── Session2/                  DynamoDB と Lambda（会員 API）
+│   ├── README.md              セッション案内
+│   ├── 01-dynamodb.md         DynamoDB の作成手順
+│   ├── 02-lambda.md           Lambda の作成・設定・テスト手順
+│   ├── app.py                 会員 API の Lambda コード
+│   └── test-events/           Lambda のテストイベント
+│       ├── create-user.json
+│       └── list-users.json
+├── Session3/                  HTTP API と CORS
+│   └── README.md
+├── Session4/                  Bedrock で料理のおすすめ
+│   ├── README.md
+│   ├── lambda_function.py     Bedrock を呼び出す Lambda コード
+│   └── test-event.json        Lambda のテストイベント
+├── Session5/                  検索ツール（tool_use）で回答の精度を比べる
+│   ├── README.md
+│   ├── lambda_function.py     検索ツールを使う Lambda コード
+│   └── test-event.json        Lambda のテストイベント
+├── amplify.yml                Amplify Hosting 用のビルド設定
+├── README.md                  この案内
+└── CONTRIBUTING.md            リポジトリ管理者向けの手順書
 ```
 
 ## リソース名

@@ -27,27 +27,19 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 
 ## 3-3. ルート（経路）を設定する
 
-**ルート** は、「どのメソッドと URL の組み合わせを、どの Lambda に渡すか」の一覧です。次の 5 つを作ります。
+**ルート** は、「どのメソッドと URL の組み合わせを、どの Lambda に渡すか」の一覧です。このセッションでは、会員を登録する次の 1 つだけを作ります。
 
 | メソッド | パス | 役割 |
 |---|---|---|
 | POST | `/v1/users` | 会員を登録する |
-| GET | `/v1/users` | 会員の一覧を取る |
-| GET | `/v1/users/{id}` | 会員を 1 件取る |
-| PUT | `/v1/users/{id}` | 会員の内容を更新する |
-| DELETE | `/v1/users/{id}` | 会員を削除する |
-
-> **`{id}` とは？**
-> URL の中の「変わる部分」です。`/v1/users/u-0001` と呼ぶと、`id` は `u-0001` になり、Lambda に渡されます。
 
 ### 作り方
 
 1. ルートの画面で **ルートを追加** をクリック
-2. メソッドとパスを入力し、統合先に `users-function-<名前>` を選ぶ
-3. 上の表の 5 つをすべて追加する
-4. **次へ**
+2. メソッドに **POST**、パスに `/v1/users` を入力し、統合先に `users-function-<名前>` を選ぶ
+3. **次へ**
 
-> 「ルートの追加」を繰り返すと、統合先の選択を忘れやすいので、5 つすべてで `users-function-<名前>` になっているか確認してください。
+> 一覧の取得・照会・更新・削除の API は、このセッションでは作りません。
 
 ## 3-4. ステージを設定する
 
@@ -69,7 +61,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 
 ### 確認ポイント
 
-- [ ] 5 つのルートがあり、すべて `users-function-<名前>` につながっている
+- [ ] ルート `POST /v1/users` があり、`users-function-<名前>` につながっている
 - [ ] ステージが `$default`
 - [ ] API の URL を控えた
 
@@ -127,7 +119,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
    | 項目 | 設定値 |
    |---|---|
    | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`、CloudFront は `https://<ディストリビューションのドメイン名>`、Amplify はデプロイ画面に表示されたブランチ URL。複数の URL から使う場合は各オリジンを追加 |
-   | 許可されたメソッド（Access-Control-Allow-Methods） | `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` |
+   | 許可されたメソッド（Access-Control-Allow-Methods） | `POST`, `OPTIONS` |
    | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
 
@@ -140,7 +132,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 ### 確認ポイント
 
 - [ ] 実際のフロントエンド URL のオリジンを許可した
-- [ ] `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` と `content-type` を許可した
+- [ ] `POST`, `OPTIONS` と `content-type` を許可した
 - [ ] 認証情報は無効になっている
 
 ## 3-8. 動作を確かめる（PowerShell）
@@ -157,41 +149,9 @@ Invoke-RestMethod -Method Post -Uri "$api/v1/users" -ContentType "application/js
 
 - 結果に `message` と `user` が出れば成功です。
 
-### 一覧を取る（GET）
-
-```powershell
-Invoke-RestMethod -Uri "$api/v1/users?limit=20"
-```
-
-- `users` の中に、登録した `u-0001` が出れば成功です。
-
-### 1 件取る（GET）
-
-```powershell
-Invoke-RestMethod -Uri "$api/v1/users/u-0001"
-```
-
-### 更新する（PUT）
-
-```powershell
-$body = '{"id":"u-0001","name":"山田次郎","email":"taro@example.com","age":31,"address":"東京都千代田区1-1","tel":"09012345678"}'
-Invoke-RestMethod -Method Put -Uri "$api/v1/users/u-0001" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
-```
-
-### 削除する（DELETE）
-
-```powershell
-Invoke-WebRequest -Method Delete -Uri "$api/v1/users/u-0001" -UseBasicParsing | Select-Object StatusCode
-```
-
-- `StatusCode` が **204** なら成功です（本文は空）。
-
 ### 確認ポイント
 
 - [ ] POST で 201 相当の結果（`message` と `user`）が返る
-- [ ] GET 一覧に登録した会員が出る
-- [ ] PUT で `name` が「山田次郎」に変わる
-- [ ] DELETE 後、GET 1 件で 404（見つからない）になる
 
 > **うまくいかないとき**
 > - 404 Not Found: パスの綴りを確認（`/v1/users` の `v1` を忘れていないか）
