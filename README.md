@@ -19,7 +19,8 @@ Session0 で教材を入手してから、Session1〜4 を順番に進めてく�
 ```text
 Session1/
   README.md                 S3 静的サイト作成手順
-  index.html                ウェブページ
+  index.html                ウェブページ（HTML）
+  app.js                    ウェブページの動き（JavaScript）
   styles.css                ページのスタイル
   photo1.png, photo2.png    サイトで使用する画像
   config.js                 API URL の設定（Session3・4 で設定）
