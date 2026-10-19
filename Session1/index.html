@@ -86,7 +86,7 @@
 
         // ── Session2: 会員登録 ──────────────────────────────────
         // CloudFront経由でAPI Gatewayにルーティング（/users-stage/* → Session2 API）
-        var registrationUrl = "https://APIドメイン名";
+        var registrationUrl = "/users-stage/";
 
         $("#registerButton").on("click", function() {
             var requestBody = parseJson($("#registrationForm").serializeArray());
@@ -118,7 +118,7 @@
 
         // ── Session3: AIおすすめ（Bedrock） ─────────────────────
         // CloudFront経由でAPI Gatewayにルーティング（/prod/* → Session3 API）
-        var bedrockUrl = "https://APIドメイン名";
+        var bedrockUrl = "/prod/handson-sample-b";
 
         $("#response").html("旅のプロ・アドバイザーがお答えします！");
 
