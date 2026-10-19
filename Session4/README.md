@@ -111,7 +111,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
    window.BEDROCK_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com";
    ```
 
-2. S3 へ公開している場合は `Session1/index.html`、`auth.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下に再アップロードする。CloudFront を使う場合は `/*` を Invalidation する
+2. S3 へ公開している場合は `Session1/index.html`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下に再アップロードする。CloudFront を使う場合は `/*` を Invalidation する
 3. Amplify を使う場合は環境変数 `BEDROCK_API_ENDPOINT` に API URL を追加して再デプロイする
 4. Session1 のサイトを HTTPS（CloudFront または Amplify）で開き、おすすめ欄に「長野でそばを食べたい」などと入力してボタンを押す
 5. Bedrock からの日本語回答が画面に表示されれば成功
@@ -133,4 +133,4 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 Bedrock への呼び出しは従量課金です。使い終わったら API を削除し、不要な呼び出しが続かないようにしてください。
 
-認証を追加する場合は、[Session5](../Session5/README.md) に進んでください。Session5 は会員 API を保護します。Bedrock API は引き続き認証されないため、CORS と API URL を公開範囲に注意して管理してください。
+Bedrock API は認証されないため、CORS と API URL を公開範囲に注意して管理してください。

@@ -25,7 +25,6 @@
 | `photo1.png` | おすすめ風景①の画像（かぐらスキー場） |
 | `photo2.png` | おすすめ風景②の画像（富津海岸から望む富士山） |
 | `config.js` | 会員 API と Bedrock API のエンドポイント（Session3/4 で設定する） |
-| `auth.js` | Session5 の Cognito ログイン／ログアウトと認証付き API 呼び出し |
 | `Bucketpolicy.txt` | S3 バケットを公開するためのポリシー設定 |
 
 ---
@@ -67,16 +66,15 @@
 
 1. 作成したバケットをクリックして開く
 2. **「アップロード」** ボタンをクリック
-3. **「ファイルを追加」** をクリックし、以下の 6 ファイルをすべて選択：
+3. **「ファイルを追加」** をクリックし、以下の 5 ファイルをすべて選択：
    - `index.html`
    - `styles.css`
    - `photo1.png`
    - `photo2.png`
    - `config.js`
-   - `auth.js`
 4. **「アップロード」** をクリック
 
-> 6 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session4、ログインは Session5 の設定後に使えます。
+> 5 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session4 の設定後に使えます。
 
 ---
 
@@ -192,7 +190,7 @@ CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模の
 
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session4、ログインは Session5 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session4 で設定します。
 
 > ハンズオン終了後は CloudFront ディストリビューションを無効化して削除し、S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
 

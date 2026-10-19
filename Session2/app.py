@@ -177,40 +177,12 @@ def delete_user(user_id):
     return respond(204)
 
 
-def cognito_groups(event):
-    """ID トークンの cognito:groups を返す（API Gateway が検証済みの値）。"""
-    claims = event.get("requestContext", {}).get("authorizer", {}).get("jwt", {}).get("claims", {})
-    groups = claims.get("cognito:groups", [])
-    # HTTP API では配列が "[admin]" や "[a b]" のような文字列で届くことがあるので、両方に対応する
-    if isinstance(groups, str):
-        groups = groups.strip("[]").replace(",", " ").split()
-    return groups
-
-
-def require_admin(event):
-    if "admin" not in cognito_groups(event):
-        raise ApiError(403, "管理者のみ利用できます")
-
-
-def admin_list_users(event):
-    require_admin(event)
-    return list_users(event.get("queryStringParameters") or {})
-
-
-def admin_get_user(event, user_id):
-    require_admin(event)
-    return get_user(user_id)
-
-
 ROUTES = {
     "POST /v1/users": lambda event, params: create_user(event),
     "GET /v1/users/{id}": lambda event, params: get_user(params["id"]),
     "GET /v1/users": lambda event, params: list_users(event.get("queryStringParameters") or {}),
     "PUT /v1/users/{id}": lambda event, params: update_user(params["id"], event),
     "DELETE /v1/users/{id}": lambda event, params: delete_user(params["id"]),
-    # 管理者用（閲覧のみ）
-    "GET /v1/admin/users": lambda event, params: admin_list_users(event),
-    "GET /v1/admin/users/{id}": lambda event, params: admin_get_user(event, params["id"]),
 }
 
 

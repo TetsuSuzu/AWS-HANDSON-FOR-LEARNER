@@ -85,7 +85,7 @@ window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 
 1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
 2. AWS コンソールで Session1 の S3 バケットを開く
-3. `index.html`、`auth.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
+3. `index.html`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
 4. Session1 で CloudFront も作成している場合は、ディストリビューションの **Invalidations** から `/*` を無効化する
 5. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
 
@@ -128,7 +128,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
    |---|---|
    | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`、CloudFront は `https://<ディストリビューションのドメイン名>`、Amplify はデプロイ画面に表示されたブランチ URL。複数の URL から使う場合は各オリジンを追加 |
    | 許可されたメソッド（Access-Control-Allow-Methods） | `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` |
-   | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type`, `authorization`（Session5 で Cognito JWT 認証を使うため） |
+   | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
 
 3. 保存する。ステージ `$default` の自動デプロイが有効なら、設定は自動で反映される
@@ -140,7 +140,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 ### 確認ポイント
 
 - [ ] 実際のフロントエンド URL のオリジンを許可した
-- [ ] `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` と `content-type`, `authorization` を許可した
+- [ ] `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS` と `content-type` を許可した
 - [ ] 認証情報は無効になっている
 
 ## 3-8. 動作を確かめる（PowerShell）
@@ -198,7 +198,7 @@ Invoke-WebRequest -Method Delete -Uri "$api/v1/users/u-0001" -UseBasicParsing | 
 > - 500 エラー: Lambda の CloudWatch Logs を確認（2-7 の権限やテーブル名を見直す）
 > - 日本語が文字化けして見える: PowerShell の表示の問題のことが多いです。データの中身は、Lambda の一覧で確かめてください。
 >
-> PowerShell の呼び出しは API の動作確認には使えますが、ブラウザーの CORS 制約は検査しません。CORS を含めた確認には、公開した Web アプリを実際にブラウザーで開いて API を呼び出してください。Session5 で Cognito を設定した後は、会員 API にログインが必要になります。
+> PowerShell の呼び出しは API の動作確認には使えますが、ブラウザーの CORS 制約は検査しません。CORS を含めた確認には、公開した Web アプリを実際にブラウザーで開いて API を呼び出してください。
 
 ## 3-9. 片付け（使い終わったら）
 
@@ -214,6 +214,4 @@ Invoke-WebRequest -Method Delete -Uri "$api/v1/users/u-0001" -UseBasicParsing | 
 
 ## 次の段階
 
-この教材では、認証（ログイン）は付けていません。次は、Cognito を使ってログインした人だけが API を呼べるようにする段階に進みます。
-
-Session3 の後は [Session4](../Session4/README.md) で Bedrock の料理おすすめ機能を追加し、続けて [Session5](../Session5/README.md) で Cognito 認証を設定してください。
+Session3 の後は [Session4](../Session4/README.md) で Bedrock の料理おすすめ機能を追加してください。

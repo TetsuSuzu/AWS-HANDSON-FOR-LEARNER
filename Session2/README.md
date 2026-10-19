@@ -1,6 +1,6 @@
 # Session2 — DynamoDB と Lambda で会員 API の処理を作る
 
-先に [Session1](../Session1/README.md) で S3 静的サイトを作成してください。このセッションでは、そのサイトから使う会員 API の処理を DynamoDB と Lambda で作成します。Session2 では Lambda 単体のテストまで行い、HTTP API への接続は Session3 で設定します。
+先に [Session0](../Session0/README.md) で教材を入手し、[Session1](../Session1/README.md) で S3 静的サイトを作成してください。このセッションでは、そのサイトから使う会員 API の処理を DynamoDB と Lambda で作成します。Session2 では Lambda 単体のテストまで行い、HTTP API への接続は Session3 で設定します。
 
 ## このセッションで作るもの
 

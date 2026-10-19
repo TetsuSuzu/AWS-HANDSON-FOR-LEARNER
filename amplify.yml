@@ -5,13 +5,12 @@ applications:
       phases:
         build:
           commands:
-            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.BEDROCK_API_ENDPOINT = ${JSON.stringify(process.env.BEDROCK_API_ENDPOINT || "")};\nwindow.COGNITO_DOMAIN = ${JSON.stringify(process.env.COGNITO_DOMAIN || "")};\nwindow.COGNITO_CLIENT_ID = ${JSON.stringify(process.env.COGNITO_CLIENT_ID || "")};\nwindow.COGNITO_CALLBACK_URL = ${JSON.stringify(process.env.COGNITO_CALLBACK_URL || "")};\n`);'
+            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.BEDROCK_API_ENDPOINT = ${JSON.stringify(process.env.BEDROCK_API_ENDPOINT || "")};\n`);'
       artifacts:
         baseDirectory: .
         files:
           - index.html
           - config.js
-          - auth.js
           - styles.css
           - photo1.png
           - photo2.png
