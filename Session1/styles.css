@@ -160,3 +160,25 @@ footer {
 .admin-table th {
     background-color: #e8f5e9;
 }
+
+/* 管理画面のユーザID検索：ラベルの下に、入力欄とボタンを横に並べる */
+#searchForm {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#searchForm label {
+    flex-basis: 100%;
+    margin-bottom: 0;
+}
+
+#searchForm input {
+    flex: 1 1 12rem;
+    margin-bottom: 0;
+}
+
+#searchForm button {
+    padding: 0.5rem 1.5rem;
+}

@@ -59,7 +59,6 @@ AWS-HANDSON-FOR-LEARNER/
 │   ├── lambda_function.py     店リストを読む Lambda コード
 │   ├── shops.txt              ランチマップから作った店リスト
 │   └── test-event.json        Lambda のテストイベント
-├── amplify.yml                Amplify Hosting 用のビルド設定
 ├── README.md                  この案内
 └── CONTRIBUTING.md            リポジトリ管理者向けの手順書
 ```

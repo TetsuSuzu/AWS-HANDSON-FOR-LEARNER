@@ -301,4 +301,4 @@ header {
 
 ### AI おすすめ機能が動かない
 
-- `index.html` は書き換えず、Session6 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT`（Amplify なら同名の環境変数）に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session6 で設定します」と表示されるのが正常です
+- `index.html` は書き換えず、Session6 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session6 で設定します」と表示されるのが正常です

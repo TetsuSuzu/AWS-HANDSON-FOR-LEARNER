@@ -5,6 +5,9 @@ var editStatus = document.getElementById("editStatus");
 var userRows = document.getElementById("userRows");
 var editSection = document.getElementById("edit");
 var editForm = document.getElementById("editForm");
+var searchInput = document.getElementById("searchId");
+// 直前に表示した内容（検索したユーザID。空なら全件）。更新・削除のあとに同じ表示へ戻すために覚えておく
+var lastSearchId = "";
 
 // API を呼ぶ共通の関数
 async function callApi(method, path, body) {
@@ -23,7 +26,9 @@ async function callApi(method, path, body) {
     // 削除に成功したときは本文がない（204）
     var result = response.status === 204 ? {} : await response.json();
     if (!response.ok) {
-        throw new Error(result.message || "処理に失敗しました");
+        var error = new Error(result.message || "処理に失敗しました");
+        error.status = response.status;
+        throw error;
     }
     return result;
 }
@@ -59,6 +64,7 @@ function renderUsers(users) {
 }
 
 async function loadUsers() {
+    lastSearchId = "";
     listStatus.className = "";
     listStatus.textContent = "取得しています...";
     try {
@@ -76,6 +82,47 @@ async function loadUsers() {
         userRows.textContent = "";
         listStatus.textContent = "取得に失敗しました: " + error.message;
     }
+}
+
+// ユーザIDで 1 件だけ取得して表示する（GET /users/{id}）
+async function searchUser() {
+    var id = searchInput.value.trim();
+    if (!id) {
+        listStatus.textContent = "ユーザIDを入力してください。";
+        return;
+    }
+    lastSearchId = id;
+    listStatus.className = "";
+    listStatus.textContent = "検索しています...";
+    try {
+        var user = await callApi("GET", "/users/" + encodeURIComponent(id));
+        renderUsers([user]);
+        listStatus.textContent = "ユーザID「" + id + "」の会員が見つかりました。";
+    } catch (error) {
+        userRows.textContent = "";
+        listStatus.textContent = error.status === 404
+            ? "ユーザID「" + id + "」の会員は見つかりませんでした。"
+            : "検索に失敗しました: " + error.message;
+    }
+}
+
+// 更新・削除のあと、直前と同じ表示（検索結果または全件）に戻す
+async function refreshList() {
+    if (lastSearchId) {
+        await searchUser();
+    } else {
+        await loadUsers();
+    }
+}
+
+// 表・メッセージ・検索欄・更新フォームを空に戻す（データは消えない。画面の表示だけ）
+function clearView() {
+    lastSearchId = "";
+    userRows.textContent = "";
+    searchInput.value = "";
+    listStatus.textContent = "";
+    editStatus.textContent = "";
+    editSection.hidden = true;
 }
 
 function startEdit(user) {
@@ -101,7 +148,7 @@ async function saveUser() {
     try {
         await callApi("PUT", "/users/" + encodeURIComponent(user.id), user);
         editSection.hidden = true;
-        await loadUsers();
+        await refreshList();
         listStatus.textContent = "更新しました。" + listStatus.textContent;
     } catch (error) {
         editStatus.textContent = "更新に失敗しました: " + error.message;
@@ -116,7 +163,7 @@ async function deleteUser(user) {
     listStatus.textContent = "削除しています...";
     try {
         await callApi("DELETE", "/users/" + encodeURIComponent(user.id));
-        await loadUsers();
+        await refreshList();
         listStatus.textContent = "削除しました。" + listStatus.textContent;
     } catch (error) {
         listStatus.textContent = "削除に失敗しました: " + error.message;
@@ -124,6 +171,14 @@ async function deleteUser(user) {
 }
 
 document.getElementById("loadButton").addEventListener("click", loadUsers);
+document.getElementById("clearButton").addEventListener("click", clearView);
+document.getElementById("searchButton").addEventListener("click", searchUser);
+searchInput.addEventListener("keydown", function(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        searchUser();
+    }
+});
 document.getElementById("saveButton").addEventListener("click", saveUser);
 document.getElementById("cancelButton").addEventListener("click", function() {
     editSection.hidden = true;

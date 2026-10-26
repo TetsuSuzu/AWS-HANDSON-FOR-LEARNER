@@ -1,9 +1,8 @@
-# 教材ファイルと Amplify のビルド設定を push 対象にする
+# 教材ファイルを push 対象にする
 *
 !.gitignore
 !README.md
 !CONTRIBUTING.md
-!amplify.yml
 !.github/
 !.github/**
 !Session0/

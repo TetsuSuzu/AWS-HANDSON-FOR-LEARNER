@@ -15,7 +15,15 @@
         <section id="auth">
             <h2>会員の一覧</h2>
             <p>登録済みの会員を取得します。個人情報が表示されるため、画面を他の人に見せないでください。</p>
-            <p><button type="button" id="loadButton" class="green-button">会員一覧を取得</button></p>
+            <p>
+                <button type="button" id="loadButton" class="green-button">会員一覧を取得</button>
+                <button type="button" id="clearButton" class="green-button">表示をクリア</button>
+            </p>
+            <form id="searchForm">
+                <label for="searchId">ユーザIDで検索</label>
+                <input id="searchId" type="text" name="searchId" placeholder="例：sample-0001">
+                <button type="button" id="searchButton" class="green-button">検索</button>
+            </form>
             <p id="listStatus" aria-live="polite"></p>
         </section>
 

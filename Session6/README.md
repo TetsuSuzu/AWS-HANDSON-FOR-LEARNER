@@ -116,7 +116,7 @@ Session5 とは別に、検索用の HTTP API を作ります。Session5 の API
 4. **次へ** → **作成**。ステージは `$default` のまま、自動デプロイを有効にする
 5. **CORS** で、Session1 のサイトのオリジンを許可する（`POST`、`OPTIONS`、`content-type`）
 6. 概要に表示される API の URL を控える（末尾に `/` は付けない）
-7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードする（Amplify の場合は環境変数 `SEARCH_API_ENDPOINT`）
+7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードする
 
    ```javascript
    window.SEARCH_API_ENDPOINT = "<控えた URL>";

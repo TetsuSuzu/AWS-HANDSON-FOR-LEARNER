@@ -20,7 +20,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
-- Session1 の Amplify のサイト URL を控える。S3 ウェブサイト URL を使う場合は `http://` から始まるオリジン全体を控える
+- Session1 の S3 ウェブサイト URL を控える。`http://` から始まるオリジン全体を控える
 - AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
 - Session5 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
 
@@ -168,7 +168,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 実際にサイトを開く URL のオリジン。Amplify はデプロイされたブランチ URL、S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com` |
+   | 許可されたオリジン | 実際にサイトを開く URL のオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com` |
    | 許可されたメソッド | `POST`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
