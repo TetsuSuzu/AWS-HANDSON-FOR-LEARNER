@@ -77,7 +77,7 @@ window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 
 1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
 2. AWS コンソールで Session1 の S3 バケットを開く
-3. `index.html`、`app.js`、`admin.html`、`admin.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
+3. `index.html`、`app.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える（`admin.html` と `admin.js` は別のバケットに置くため、ここでは上げません）
 4. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
 
 S3 ウェブサイトエンドポイントは HTTP です。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。

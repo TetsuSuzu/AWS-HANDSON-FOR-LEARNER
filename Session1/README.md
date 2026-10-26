@@ -4,6 +4,8 @@
 
 写真と会員登録フォームを含む **静的ウェブサイト** を Amazon S3 でホスティングして公開します。会員登録フォームは Session3 で API に接続します。
 
+> **S3 バケットは 2 つに分けます**: 会員向けサイト（`index.html`）は、この Session で作るバケットに置きます。管理者用の画面（`admin.html`）は、個人情報を扱うため **別のバケット** に置きます。管理画面用のバケットは Session4 で作ります。
+
 ```
 【全体構成】
 
@@ -22,12 +24,12 @@
 |---|---|
 | `index.html` | ウェブサイトのメインページ（HTML。S3 にアップロードする） |
 | `app.js` | 会員登録と料理のおすすめの動き（JavaScript。S3 にアップロードする） |
-| `admin.html` | 管理者用の会員管理画面（Session4 で使う。S3 にアップロードする） |
-| `admin.js` | 会員管理画面の動き（JavaScript。S3 にアップロードする） |
+| `admin.html` | 管理者用の会員管理画面（Session4 で使う。**別の S3 バケット** に置くため、この Session ではアップロードしない） |
+| `admin.js` | 会員管理画面の動き（JavaScript。`admin.html` と同じく Session4 で使う） |
 | `styles.css` | ウェブサイトのデザイン設定 |
 | `photo1.png` | おすすめ風景①の画像（かぐらスキー場） |
 | `photo2.png` | おすすめ風景②の画像（富津海岸から望む富士山） |
-| `config.js` | 会員 API・管理 API・Bedrock API のエンドポイント（Session3・4・6 で設定する） |
+| `config.js` | 会員 API・管理 API・Bedrock API のエンドポイント（Session3・4・6 で設定する）。会員向けサイトと管理画面の両方に置く |
 | `Bucketpolicy.txt` | S3 バケットを公開するためのポリシー設定 |
 
 ---
@@ -54,7 +56,7 @@
 
 | 項目 | 値 |
 |---|---|
-| バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`） |
+| バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`）。会員向けサイト用 |
 | AWS リージョン | **アジアパシフィック（東京） ap-northeast-1** |
 | パブリックアクセスをすべてブロック | **チェックを外す（ブロックを無効にする）** |
 
@@ -68,18 +70,16 @@
 
 1. 作成したバケットをクリックして開く
 2. **「アップロード」** ボタンをクリック
-3. **「ファイルを追加」** をクリックし、以下の 8 ファイルをすべて選択：
+3. **「ファイルを追加」** をクリックし、以下の 6 ファイルをすべて選択：
    - `index.html`
    - `app.js`
-   - `admin.html`
-   - `admin.js`
    - `styles.css`
    - `photo1.png`
    - `photo2.png`
    - `config.js`
 4. **「アップロード」** をクリック
 
-> 8 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、会員管理画面は Session4、料理のおすすめは Session6 の設定後に使えます。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session6 の設定後に使えます。
 
 ---
 
@@ -148,7 +148,7 @@
 
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面は Session4、料理のおすすめ機能は Session6 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケット）は Session4、料理のおすすめ機能は Session6 で設定します。
 
 > ハンズオン終了後は S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
 

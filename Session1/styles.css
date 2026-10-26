@@ -38,7 +38,7 @@ nav ul li a:hover {
 }
 
 main {
-    padding: 2rem;
+    padding: 2rem 2rem 6rem;
     max-width: 1200px;
     margin: 0 auto;
 }

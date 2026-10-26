@@ -26,7 +26,7 @@ AWS-HANDSON-FOR-LEARNER/
 │   ├── README.md              S3 作成手順
 │   ├── index.html             ウェブページ（HTML）
 │   ├── app.js                 ページの動き（JavaScript）
-│   ├── admin.html             管理者用の会員管理画面（Session4 で使用）
+│   ├── admin.html             管理者用の会員管理画面（Session4 で別の S3 バケットに置く）
 │   ├── admin.js               会員管理画面の動き（JavaScript）
 │   ├── config.js              API URL の設定（Session3・4・6 で設定）
 │   ├── styles.css             ページのデザイン（CSS）
@@ -66,10 +66,10 @@ AWS-HANDSON-FOR-LEARNER/
 
 ## リソース名
 
-Session1 の S3 バケット名に使う `lastname-firstname` と、Session2〜6 の `<名前>` には同じ個人名を使います（例: `yamada-taro`）。AWS のリソース名が他の受講者と重ならないようにしてください。
+Session1 の S3 バケット名に使う `lastname-firstname`（管理画面用は Session4 で `lastname-firstname-admin`）と、Session2〜6 の `<名前>` には同じ個人名を使います（例: `yamada-taro`）。AWS のリソース名が他の受講者と重ならないようにしてください。
 
 ## 注意事項
 
 - Session1 の S3 静的ウェブサイトは公開設定です。個人情報、パスワード、認証情報、秘密鍵などはアップロードしないでください。
 - Session2〜6 で作成した AWS リソースは、ハンズオン終了後に各手順の案内に従って削除してください。特に Session5・6 の Bedrock 呼び出しは従量課金です。
-- Session4 の管理画面と管理 API には認証がありません。URL を知る人は誰でも会員の閲覧・更新・削除ができます。テスト用のデータだけを登録し、研修が終わったら管理 API と `admin.html` を削除してください。
+- Session4 の管理画面と管理 API には認証がありません。URL を知る人は誰でも会員の閲覧・更新・削除ができます。テスト用のデータだけを登録し、研修が終わったら管理 API と、管理画面用の S3 バケットを削除してください。

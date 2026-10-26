@@ -5,7 +5,7 @@ Session3 では、会員登録（POST）だけを API にしました。Session4
 ## 構成
 
 ```text
-管理者のブラウザー（Session1 の admin.html）
+管理者のブラウザー（管理画面用の S3 バケットの admin.html）
    │ GET / PUT / DELETE
    ▼
 API Gateway HTTP API（users-admin-api-<名前>）
@@ -19,6 +19,8 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 
 会員登録の API（Session3 の `users-api-<名前>`）は POST のみのまま変えません。管理の機能は、別の API と Lambda に分けます。
 
+管理画面の置き場所も、会員向けサイトとは **別の S3 バケット**（`<名前>-admin`）にします。個人情報を扱う画面の URL を、一般の会員に見せるサイトから切り離すためです。
+
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session3](../Session3/README.md) を完了する
@@ -26,11 +28,11 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 - AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** にする
 - `<名前>` は Session2・Session3 と同じ値を使う
 
-> **認証がないことに注意**: 管理 API は、会員の個人情報（名前、メールアドレス、住所、電話番号）を返し、削除もできます。この研修では手順を簡単にするため、**認証を付けていません**。API の URL と `admin.html` の URL を知っている人は、誰でも会員の閲覧・更新・削除ができます。
+> **認証がないことに注意**: 管理 API は、会員の個人情報（名前、メールアドレス、住所、電話番号）を返し、削除もできます。この研修では手順を簡単にするため、**認証を付けていません**。API の URL と管理画面の URL を知っている人は、誰でも会員の閲覧・更新・削除ができます。
 >
 > - 研修で使うテスト用の会員データだけを登録し、**実在の個人情報は入れない**でください。
-> - API の URL と `admin.html` の URL は、受講者以外に教えたり、画面共有や資料に載せたりしないでください。
-> - 研修が終わったら、**必ず** 「片付け」の手順で API と `admin.html` を削除してください。
+> - API の URL と管理画面の URL は、受講者以外に教えたり、画面共有や資料に載せたりしないでください。
+> - 研修が終わったら、**必ず** 「片付け」の手順で API と管理画面用のバケットを削除してください。
 > - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。
 
 ## コードの読み方（lambda_function.py・初心者向け）
@@ -65,7 +67,7 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 | 404 | 対象の会員が見つからない |
 | 500 | サーバー内部のエラー |
 
-### 管理画面のコード（Session1 の admin.html・admin.js）
+### 管理画面のコード（Session1 フォルダの admin.html・admin.js）
 
 - `admin.html`: 会員の一覧表と更新フォームがあります。更新フォームは、「編集」を押すまで隠れています。
 - `admin.js`: ボタンを押したときの動きです。`callApi` が API を呼びます。
@@ -113,7 +115,20 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
 > **エラーが出たら**: `KeyError: 'TABLE_NAME'` は環境変数の未設定です。`AccessDeniedException` は、実行ロールの DynamoDB 権限を確かめてください。
 
-## 4. HTTP API を作成する
+## 4. 管理画面用の S3 バケットを作る
+
+会員向けサイト（Session1）とは別のバケットを作り、公開の設定をします。手順は [Session1](../Session1/README.md) の Step 1・3・4 と同じです。違うのは次の点だけです。
+
+| 項目 | 値 |
+|---|---|
+| バケット名 | <font color="red">lastname-firstname-admin</font>（例：`yamada-taro-admin`） |
+| パブリックアクセスをすべてブロック | チェックを外す |
+| 静的ウェブサイトホスティング | 有効にする。インデックスドキュメントとエラードキュメントは、どちらも `admin.html` |
+| バケットポリシー | Session1 の Step 4 と同じ内容。`Resource` のバケット名を `lastname-firstname-admin` にする |
+
+> ファイルのアップロードは、手順 7 で行います。ウェブサイトエンドポイント（`http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`）を控えておきます。手順 6 の CORS で使います。
+
+## 5. HTTP API を作成する
 
 1. **API Gateway** → **API を作成** → **HTTP API** → **構築** を選ぶ
 2. 統合に Lambda の `users-admin-function-<名前>` を選び、API 名を `users-admin-api-<名前>` にする
@@ -131,14 +146,14 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 4. ステージは `$default`、自動デプロイを有効にして作成する
 5. API の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
 
-## 5. API の CORS を設定する
+## 6. API の CORS を設定する
 
 1. API Gateway で `users-admin-api-<名前>` を開き **CORS** を選ぶ
 2. 次の値を設定する
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 管理画面を開くサイトのオリジン（Session3 の CORS と同じ値。S3 なら `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`） |
+   | 許可されたオリジン | 手順 4 の **管理画面用バケット** のオリジン（`http://<バケット名>-admin.s3-website-ap-northeast-1.amazonaws.com`）。Session3 の会員向けサイトのオリジンとは別の値です |
    | 許可されたメソッド | `GET`, `PUT`, `DELETE`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
@@ -147,30 +162,26 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
 > `PUT` や `DELETE` を許可しないと、ブラウザーが要求を止めてしまい、管理画面に「Failed to fetch」と出ます。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。
 
-## 6. 管理画面に API の URL を設定して公開する
+## 7. 管理画面に API の URL を設定して公開する
 
-`Session1/config.js` の `window.ADMIN_API_ENDPOINT` に、手順 4 で控えた URL を設定します。末尾に `/` は付けません。
+`Session1/config.js` の `window.ADMIN_API_ENDPOINT` に、手順 5 で控えた URL を設定します。末尾に `/` は付けません。
 
 ```javascript
 window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
 ```
 
-### 方法 A：Session1 の S3 静的サイトを更新する
+手順 4 で作った **管理画面用のバケット** を開き、次の 4 ファイルをバケット直下にアップロードします。
 
-1. S3 のバケットを開く
-2. `admin.html`、`admin.js`、`config.js` をアップロードする（既存の `config.js` は置き換える）
+- `admin.html`
+- `admin.js`
+- `styles.css`
+- `config.js`
 
-### 方法 B：AWS Amplify Hosting
+> 会員向けサイトのバケット(Session1)には、管理画面のファイルを置きません。管理画面は Amplify ではなく、この S3 バケットで公開します。
 
-Amplify の環境変数に、次を追加して再デプロイします。
+## 8. 管理画面で確かめる
 
-| キー | 値 |
-|---|---|
-| `ADMIN_API_ENDPOINT` | 手順 4 で控えた管理 API の URL |
-
-## 7. 管理画面で確かめる
-
-1. ブラウザーで、公開サイトの `admin.html` を開く（例: `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com/admin.html`）
+1. ブラウザーで、管理画面用バケットの `admin.html` を開く(例: `http://<バケット名>-admin.s3-website-ap-northeast-1.amazonaws.com/admin.html`)
 2. **会員一覧を取得** を押す
    - 登録済みの会員が表に出れば成功です
 3. 会員の **編集** を押し、年齢などを変えて **更新** を押す。一覧の内容が変わることを確かめる
@@ -188,7 +199,8 @@ $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
 
 - [ ] Lambda のテストで、一覧が 200 で返る
 - [ ] HTTP API に 4 つのルート（`GET /users`、`GET /users/{id}`、`PUT /users/{id}`、`DELETE /users/{id}`）がある
-- [ ] CORS で `GET`, `PUT`, `DELETE`, `OPTIONS` と `content-type` を許可した
+- [ ] 管理画面用の別バケットを作り、`admin.html` などをアップロードした
+- [ ] CORS で管理画面用バケットのオリジンと、`GET`, `PUT`, `DELETE`, `OPTIONS`、`content-type` を許可した
 - [ ] 管理画面で、一覧・更新・削除ができる
 
 ## よくあるトラブルと対処法
@@ -198,7 +210,7 @@ $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
 | 「取得に失敗しました: Failed to fetch」 | CORS のオリジンとメソッド（`GET`, `PUT`, `DELETE`）を見直す。`config.js` の URL が正しいか、アップロードし直したかも確認する |
 | 「管理 API の URL は Session4 で config.js に設定します」 | `config.js` の `ADMIN_API_ENDPOINT` が空。設定してアップロードし直す |
 | 404 が返る | API のルートに `/users` と `/users/{id}` があるか、API の URL の末尾に余計なパスが付いていないかを確認する |
-| 画面の変更が反映されない | `admin.html`・`admin.js`・`config.js` を S3 にアップロードし直し、ブラウザーを再読み込みする |
+| 画面の変更が反映されない | `admin.html`・`admin.js`・`config.js` を管理画面用バケットにアップロードし直し、ブラウザーを再読み込みする |
 
 ## 片付け
 
@@ -206,7 +218,7 @@ $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
 
 1. API Gateway の `users-admin-api-<名前>` を削除する
 2. Lambda の `users-admin-function-<名前>` を削除する（実行ロールは Session2 と共有しているため、ここでは削除しない）
-3. S3 から `admin.html` と `admin.js` を削除する（Amplify の場合は、環境変数 `ADMIN_API_ENDPOINT` を削除して再デプロイする）
+3. 管理画面用の S3 バケット(`lastname-firstname-admin`)を空にして削除する
 
 Session2・Session3 のリソースは、これまでの手順どおり、すべての Session が終わってから削除します。
 
