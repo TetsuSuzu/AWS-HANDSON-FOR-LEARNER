@@ -78,10 +78,9 @@ window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
 2. AWS コンソールで Session1 の S3 バケットを開く
 3. `index.html`、`app.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
-4. Session1 で CloudFront も作成している場合は、ディストリビューションの **Invalidations** から `/*` を無効化する
-5. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
+4. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
 
-S3 ウェブサイトエンドポイントは HTTP です。CloudFront を利用する場合は HTTPS の CloudFront ドメインを使ってください。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。
+S3 ウェブサイトエンドポイントは HTTP です。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。
 
 ### 方法 B：AWS Amplify Hosting
 
@@ -111,14 +110,14 @@ S3 ウェブサイトエンドポイントは HTTP です。CloudFront を利用
 
 ## 3-7. CORS を設定する
 
-CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の S3 ウェブサイトエンドポイント、CloudFront、または Amplify で公開した URL の「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
+CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の S3 ウェブサイトエンドポイント、または Amplify で公開した URL の「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
 
 1. **API Gateway** → `users-api-<名前>` → **CORS** を開く（API の **設定** 内にある場合もあります）
 2. 次のとおり設定する
 
    | 項目 | 設定値 |
    |---|---|
-   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`、CloudFront は `https://<ディストリビューションのドメイン名>`、Amplify はデプロイ画面に表示されたブランチ URL。複数の URL から使う場合は各オリジンを追加 |
+   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`、Amplify はデプロイ画面に表示されたブランチ URL。複数の URL から使う場合は各オリジンを追加 |
    | 許可されたメソッド（Access-Control-Allow-Methods） | `POST`, `OPTIONS` |
    | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
@@ -164,13 +163,12 @@ Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset
 
 次の順番で削除してください（依存があるので、この順です）。
 
-1. CloudFront を使った場合は、CloudFront ディストリビューションを無効化し、無効化が完了してから削除する（無効化には時間がかかります）
-2. S3 を使った場合は、バケット内のオブジェクトを空にしてからバケットを削除する
-3. Amplify を使った場合は、Amplify コンソールでアプリを削除する
-4. API Gateway → `users-api-<名前>` を削除
-5. Lambda → `users-function-<名前>` を削除
-6. DynamoDB → `users-table-<名前>` テーブルを削除
-7. IAM → 実行ロール（`users-function-<名前>-role-xxxx`）を削除（任意）
+1. S3 を使った場合は、バケット内のオブジェクトを空にしてからバケットを削除する
+2. Amplify を使った場合は、Amplify コンソールでアプリを削除する
+3. API Gateway → `users-api-<名前>` を削除
+4. Lambda → `users-function-<名前>` を削除
+5. DynamoDB → `users-table-<名前>` テーブルを削除
+6. IAM → 実行ロール（`users-function-<名前>-role-xxxx`）を削除（任意）
 
 ## 次の段階
 
