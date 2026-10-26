@@ -5,13 +5,15 @@ applications:
       phases:
         build:
           commands:
-            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.SEARCH_API_ENDPOINT = ${JSON.stringify(process.env.SEARCH_API_ENDPOINT || "")};\n`);'
+            - node -e 'const fs = require("fs"); fs.writeFileSync("config.js", `window.API_ENDPOINT = ${JSON.stringify(process.env.API_ENDPOINT || "")};\nwindow.SEARCH_API_ENDPOINT = ${JSON.stringify(process.env.SEARCH_API_ENDPOINT || "")};\nwindow.ADMIN_API_ENDPOINT = ${JSON.stringify(process.env.ADMIN_API_ENDPOINT || "")};\n`);'
       artifacts:
         baseDirectory: .
         files:
           - index.html
+          - admin.html
           - config.js
           - app.js
+          - admin.js
           - styles.css
           - photo1.png
           - photo2.png

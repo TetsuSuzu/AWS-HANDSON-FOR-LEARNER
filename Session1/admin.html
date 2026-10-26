@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会員管理（管理者用）</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>会員管理（管理者用）</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">サイトに戻る</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="auth">
+            <h2>会員の一覧</h2>
+            <p>登録済みの会員を取得します。個人情報が表示されるため、画面を他の人に見せないでください。</p>
+            <p><button type="button" id="loadButton" class="green-button">会員一覧を取得</button></p>
+            <p id="listStatus" aria-live="polite"></p>
+        </section>
+
+        <section id="users">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ユーザID</th>
+                        <th>名前</th>
+                        <th>メールアドレス</th>
+                        <th>年齢</th>
+                        <th>住所</th>
+                        <th>電話番号</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="userRows"></tbody>
+            </table>
+        </section>
+
+        <section id="edit" hidden>
+            <h2>会員情報を更新</h2>
+            <form id="editForm">
+                <label for="editId">ユーザID（変更できません）</label>
+                <input id="editId" type="text" name="id" readonly><br>
+
+                <label for="editName">名前</label>
+                <input id="editName" type="text" name="name" required><br>
+
+                <label for="editEmail">メールアドレス</label>
+                <input id="editEmail" type="email" name="email" required><br>
+
+                <label for="editAge">年齢</label>
+                <input id="editAge" type="number" name="age" min="0" required><br>
+
+                <label for="editAddress">住所</label>
+                <input id="editAddress" type="text" name="address" required><br>
+
+                <label for="editTel">電話番号</label>
+                <input id="editTel" type="tel" name="tel" required><br>
+
+                <p>
+                    <button type="button" id="saveButton">更新</button>
+                    <button type="button" id="cancelButton">キャンセル</button>
+                </p>
+                <p id="editStatus" aria-live="polite"></p>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2026 View AWS勉強会サイト. All rights reserved.</p>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

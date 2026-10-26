@@ -39,7 +39,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 2. メソッドに **POST** を選び、パスは `/`（何も入力しない）のまま、統合先に `users-function-<名前>` を選ぶ
 3. **次へ**
 
-> 一覧の取得・照会・更新・削除の API は、このセッションでは作りません。
+> 一覧の取得・照会・更新・削除の API は、このセッションでは作りません（Session4 で管理者用に作ります）。
 
 ## 3-4. ステージを設定する
 
@@ -77,7 +77,7 @@ window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.c
 
 1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
 2. AWS コンソールで Session1 の S3 バケットを開く
-3. `index.html`、`app.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
+3. `index.html`、`app.js`、`admin.html`、`admin.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える
 4. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
 
 S3 ウェブサイトエンドポイントは HTTP です。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。
@@ -100,7 +100,7 @@ S3 ウェブサイトエンドポイントは HTTP です。S3 の静的ウェ�
 
 > `API_ENDPOINT` はビルドでブラウザーに配信する設定値です。API URL は公開情報ですが、パスワードや秘密鍵などの秘密情報を環境変数に入れないでください。
 
-> 料理のおすすめの API は Session5 で作成し、同じ Amplify アプリの `SEARCH_API_ENDPOINT` 環境変数に登録して再デプロイします。
+> 料理のおすすめの API は Session6 で作成し、同じ Amplify アプリの `SEARCH_API_ENDPOINT` 環境変数に登録して再デプロイします。
 
 ### 確認ポイント
 
@@ -161,6 +161,8 @@ Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset
 
 ## 3-9. 片付け（使い終わったら）
 
+Session4 で、この Session の DynamoDB テーブルと Lambda 実行ロールを引き続き使います。**Session4 以降を進める場合は、すべての Session が終わってから** 削除してください。
+
 次の順番で削除してください（依存があるので、この順です）。
 
 1. S3 を使った場合は、バケット内のオブジェクトを空にしてからバケットを削除する
@@ -172,4 +174,4 @@ Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset
 
 ## 次の段階
 
-Session3 の後は [Session4](../Session4/README.md) で Bedrock の料理おすすめ機能を追加してください。
+Session3 の後は [Session4](../Session4/README.md) で、登録した会員を管理者が一覧・更新・削除できる管理画面を作成してください。

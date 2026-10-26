@@ -18,8 +18,8 @@
 !Session4/**
 !Session5/
 !Session5/**
-!Session4/
-!Session4/**
+!Session6/
+!Session6/**
 
 # Session2の仮想環境を除外
 Session2/.venv/

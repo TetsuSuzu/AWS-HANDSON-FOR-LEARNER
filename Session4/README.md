@@ -1,213 +1,215 @@
-# Session4 — Amazon Bedrock で旅行先の料理をおすすめする
+# Session4 — 管理者用の会員管理画面を作る（一覧・更新・削除）
 
-利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
+Session3 では、会員登録（POST）だけを API にしました。Session4 では、管理者が登録済みの会員を **一覧表示・更新・削除** できる管理画面を作ります。この研修では認証（ログイン）は付けません。
 
 ## 構成
 
 ```text
-Session1 のブラウザー
-   │ POST（API の URL そのもの。パスなし）
+管理者のブラウザー（Session1 の admin.html）
+   │ GET / PUT / DELETE
    ▼
-API Gateway HTTP API（ap-northeast-1）
+API Gateway HTTP API（users-admin-api-<名前>）
    │
    ▼
-Lambda（Bedrock 呼び出し）
+Lambda（users-admin-function-<名前>）
    │
    ▼
-Amazon Bedrock Runtime（Claude Sonnet 4.6）
+DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 ```
+
+会員登録の API（Session3 の `users-api-<名前>`）は POST のみのまま変えません。管理の機能は、別の API と Lambda に分けます。
 
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session3](../Session3/README.md) を完了する
-- Session1 の Amplify のサイト URL を控える。S3 ウェブサイト URL を使う場合は `http://` から始まるオリジン全体を控える
-- AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
-- Session4 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
+- Session3 の会員登録フォームから、会員を 1 件以上登録しておく
+- AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** にする
+- `<名前>` は Session2・Session3 と同じ値を使う
 
-> **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
+> **認証がないことに注意**: 管理 API は、会員の個人情報（名前、メールアドレス、住所、電話番号）を返し、削除もできます。この研修では手順を簡単にするため、**認証を付けていません**。API の URL と `admin.html` の URL を知っている人は、誰でも会員の閲覧・更新・削除ができます。
+>
+> - 研修で使うテスト用の会員データだけを登録し、**実在の個人情報は入れない**でください。
+> - API の URL と `admin.html` の URL は、受講者以外に教えたり、画面共有や資料に載せたりしないでください。
+> - 研修が終わったら、**必ず** 「片付け」の手順で API と `admin.html` を削除してください。
+> - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。
 
 ## コードの読み方（lambda_function.py・初心者向け）
 
-`lambda_function.py` は、料理の希望を受け取り、Amazon Bedrock（生成 AI）に質問して、おすすめの答えを返す Python のプログラムです。
+`lambda_function.py` は、管理画面からの要求を受け取り、DynamoDB の会員データを一覧・取得・更新・削除する Python のプログラムです。Session2 の `app.py` と似ていますが、「登録」がありません。
 
 ### 用語の説明
 
 | 用語 | 意味 |
 |---|---|
-| `import` | ほかのプログラムの道具を借りる命令です。`json`（JSON を扱う）、`logging`（ログを残す）、`boto3`（AWS を操作する道具箱）を読み込んでいます |
-| `boto3` | Python から AWS を操作するための道具箱です |
-| Bedrock | AWS が提供する生成 AI のサービスです。文章で質問すると、文章で答えてくれます |
-| モデル | 生成 AI の本体です。`MODEL_ID` で、どのモデルを使うかを指定します |
-| プロンプト | AI に送る質問や指示の文章です。この教材では、ユーザーが入力した希望がプロンプトになります |
-| `logger` | 実行中の記録（ログ）を残す道具です。エラーの原因を調べるときに、CloudWatch Logs で見られます |
-| `ClientError` | AWS の呼び出しで起きたエラーの種類です |
-| 関数（`def`） | 処理のまとまりに名前を付けたものです。`def respond(...)` は、結果の形を作る関数です |
+| 認証 | 「その人が本人（管理者）か」を確かめることです。この研修では付けていません |
+| 環境変数 | プログラムの外から渡す設定です。テーブル名を、コードに直接書かずに済みます |
+| `ConditionExpression` | 「この条件のときだけ書き込む」という指定です。更新と削除で、会員がいるかを確かめるのに使います |
 
-### 1 行ずつの説明（主な部分）
+### 主な部分の説明
 
-- `bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")`
-  - Bedrock と通信するための接続を作ります。`region_name` は、Bedrock を使う AWS のリージョン（場所）です。
-- `MODEL_ID = os.environ["MODEL_ID"]`
-  - 使う AI モデルの名前です。値は、コードではなく Lambda の環境変数から読みます。そのため、モデルを変えるときはコードを書き換えず、環境変数の値だけを変えます。
-- `MAX_PROMPT_LENGTH = 1000`
-  - 入力できる文字数の上限です。長すぎる入力は、ここで弾きます。
-- `def lambda_handler(event, context):`
-  - Lambda が最初に呼ぶ関数です。`event` は API からの要求、`context` は Lambda の実行情報です。
-- `body = json.loads(event.get("body") or "{}")`
-  - 送られてきたデータ（JSON の文字）を、Python のデータに変換します。`or "{}"` は、データがないときは空の辞書を使うという意味です。
-- `prompt = body.get("prompt")`
-  - データの中から、`prompt` の項目（ユーザーの希望）を取り出します。
-- `if not isinstance(prompt, str) or not prompt.strip(): ...`
-  - 「文字であること」「空でないこと」を確かめます。違えば、400（入力が正しくない）を返します。
-- `request_body = {...}`
-  - AI に送るデータを作ります。
-  - `system`: AI の役割を決める指示です（「旅行と郷土料理に詳しいアドバイザー」）。
-  - `messages`: ユーザーの質問です。
-  - `max_tokens`: 返事の長さの上限です。トークンは、AI が文章を扱うときの最小の単位です。
-  - `temperature`: 返事のゆらぎを決めます。0 に近いほど決まった答えになり、高いほど多様になります。
-- `response = bedrock.invoke_model(...)`
-  - Bedrock のモデルを呼び出して、返事を待ちます。
-- `result = json.loads(response["body"].read())`
-  - 返事を読み取り、Python のデータに変換します。
-- `answer = result["content"][0]["text"]`
-  - 返事の中から、文章の部分を取り出します。`[0]` は、最初の返事という意味です。
-- `return respond(200, {"answer": answer})`
-  - 成功したときは、200 と `answer` を返します。
-- `except (ClientError, KeyError, ...):`
-  - 途中でエラーが起きたら、エラーを記録して、502（外部の処理が失敗した）を返します。
+- **`TABLE_NAME`**: 読み書きするテーブル名です。環境変数から読みます。設定していないと、Lambda は起動時にエラー（`KeyError`）になります。
+- **`list_users(query)`**: 会員を一覧で返します（`scan`）。一度に取る件数は `limit` で決め、続きがあるときは `nextToken` が付きます。
+- **`get_user(user_id)`**: 会員を 1 件返します。
+- **`update_user(user_id, event)`**: 会員の内容を書き換えます。`ConditionExpression="attribute_exists(id)"` は「その ID の会員がいるときだけ更新する」という条件です。いなければ 404 を返し、新しい会員を作ってしまうことを防ぎます。
+- **`delete_user(user_id)`**: 会員を削除します。成功したときは本文のない 204 を返します。
+- **`ROUTES`**: `"GET /users"` のような「メソッドと URL」と、呼び出す関数の対応表です。
+- **`lambda_handler(event, context)`**: 要求の `routeKey` を `ROUTES` で探し、対応する処理を実行します。
 
-### テストイベント（test-event.json）
+### 返す番号（statusCode）の意味
 
-テストイベントは、API Gateway が送ってくるはずの要求を、手で作った例です。Lambda の画面で「テスト」を押すときに使います。
+| 番号 | 意味 |
+|---|---|
+| 200 | 成功（一覧・取得・更新） |
+| 204 | 成功（本文なし。削除） |
+| 400 | 送られたデータが正しくない |
+| 404 | 対象の会員が見つからない |
+| 500 | サーバー内部のエラー |
 
-- `routeKey`: `POST /` を指定し、このプログラムを呼び出します。
-- `body`: 希望の文章です。JSON の文字の中にもう一度 JSON が入っているため、`\"` のように書いています。
+### 管理画面のコード（Session1 の admin.html・admin.js）
+
+- `admin.html`: 会員の一覧表と更新フォームがあります。更新フォームは、「編集」を押すまで隠れています。
+- `admin.js`: ボタンを押したときの動きです。`callApi` が API を呼びます。
+- 一覧に表示する名前や住所は、`textContent` で「ただの文字」として入れています。会員登録の内容は誰でも入力できるため、`<` などが含まれていても動かないようにするためです。
+- 削除の前には、確認のダイアログを出します。
 
 ---
 
 ## 1. Lambda 関数を作成する
 
-1. AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** に切り替える
-2. **Lambda** → **関数の作成** → **一から作成** を選ぶ
-3. 次の設定で作成する
+1. **Lambda** → **関数の作成** → **一から作成** を選ぶ
+2. 次の設定で作成する
 
    | 項目 | 値 |
    |---|---|
-   | 関数名 | `travel-recommendation-<名前>` |
-   | ランタイム | Python 3.12 |
-   | アーキテクチャ | x86_64 |
-   | 実行ロール | 基本的な Lambda のアクセス権限で新しいロールを作成 |
+   | 関数名 | `users-admin-function-<名前>` |
+   | ランタイム | **Python 3.12** |
+   | アーキテクチャ | **x86_64** |
+   | 実行ロール | **既存のロールを使用する** → Session2 で作った `users-function-<名前>-role-xxxx` を選ぶ |
 
-4. 関数の **コード** タブで `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
-5. **Deploy（デプロイ）** をクリックする。ハンドラーは `lambda_function.lambda_handler` にする
-6. **設定** → **一般設定** → **編集** でタイムアウトを **1 分** にする
+3. **コード** タブの `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
+4. **Deploy（デプロイ）** をクリックする
+5. **ランタイム設定** のハンドラーが `lambda_function.lambda_handler` になっていることを確認する
 
-### 環境変数 MODEL_ID を設定する
+> Session2 の実行ロールには、DynamoDB の権限（`AmazonDynamoDBFullAccess`）がすでに付いています。新しく権限を付ける必要はありません。
 
-このプログラムは、使う AI モデルを環境変数 `MODEL_ID` から読みます。設定しないと、Lambda は起動時にエラー（`KeyError: 'MODEL_ID'`）になります。
+## 2. 環境変数を設定する
 
-1. Lambda の画面で **設定** タブ → **環境変数** → **編集**
-2. **環境変数を追加** をクリックし、次を入力する
+Lambda の **設定** タブ → **環境変数** → **編集** で、次を追加して **保存** する。
 
-   | キー | 値 |
-   |---|---|
-   | `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
-
-3. **保存**
-
-> **モデルを変えたいとき**: コードは変えず、この値だけを変えて保存します。変える前に、東京リージョン（`ap-northeast-1`）の Bedrock でそのモデルが使えるかを確認してください。
-
-## 2. Lambda 実行ロールに Bedrock 権限を付ける
-
-1. Lambda の **設定** → **アクセス権限** を開き、実行ロール名をクリックする
-2. IAM ロールで **許可を追加** → **インラインポリシーを作成** → **JSON** を選ぶ
-3. 次のポリシーを貼り付ける
-
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": "bedrock:InvokeModel",
-         "Resource": [
-           "arn:aws:bedrock:*:<アカウントID>:inference-profile/global.anthropic.claude-sonnet-4-6",
-           "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
-         ]
-       }
-     ]
-   }
-   ```
-
-4. ARN 中の `<アカウントID>` を自分の AWS アカウント ID に置き換え、ポリシー名を `bedrock-invoke-model-<名前>` として作成する
-
-> このポリシーは Claude Sonnet 4.6 のグローバル推論プロファイルと、クロスリージョン先の同モデル呼び出しに限定します。推論プロファイルを使う場合は、プロファイル ARN と利用先の foundation model ARN の両方が必要です。Bedrock 側のモデル利用条件も満たしている必要があります。
+| キー | 値 |
+|---|---|
+| `TABLE_NAME` | `users-table-<名前>` |
 
 ## 3. Lambda 単体でテストする
 
-1. **テスト** → **新しいイベントを作成** を選択する
-2. イベント名を `recommendation-test` にし、`test-event.json` の内容を貼り付けて保存する
-3. **テスト** を実行する
-4. `statusCode` が `200` で、本文の `answer` に日本語の提案があれば成功
+`update-user.json` と `delete-user.json` の `u-0001` は、実際に登録した会員の ID に置き換えます。
 
-入力が不正な場合は 400、Bedrock 呼び出しで失敗した場合は 502 が返ります。失敗時は Lambda の **モニタリング** → **CloudWatch Logs** で詳細を確認してください。
+1. **テスト** タブで **新しいイベント** を作り、`test-events/list-users.json` を貼り付けて実行する
+   - `statusCode` が **200** で、`users` に登録済みの会員が出れば成功です
+2. `test-events/update-user.json`（ID を置き換える）を実行する
+   - `statusCode` が **200** になれば成功です。もう一度 `list-users.json` を実行し、年齢などが変わったことを確かめます
+3. `test-events/delete-user.json` は、削除しても困らない会員の ID で実行する
+   - `statusCode` が **204** で、一覧から消えれば成功です。同じ ID でもう一度実行すると **404** になります
+
+> **エラーが出たら**: `KeyError: 'TABLE_NAME'` は環境変数の未設定です。`AccessDeniedException` は、実行ロールの DynamoDB 権限を確かめてください。
 
 ## 4. HTTP API を作成する
 
-1. リージョンが `ap-northeast-1` のまま **API Gateway** を開く
-2. **API を作成** → **HTTP API** → **構築** を選ぶ
-3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
-4. ルートに `POST /`（パスなし）を追加し、統合先が上記 Lambda であることを確認する
-5. ステージは `$default`、自動デプロイを有効にして作成する
-6. API の詳細に表示される URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
+1. **API Gateway** → **API を作成** → **HTTP API** → **構築** を選ぶ
+2. 統合に Lambda の `users-admin-function-<名前>` を選び、API 名を `users-admin-api-<名前>` にする
+3. ルートに、次の 4 つを追加する。統合先は、どれも `users-admin-function-<名前>` にする
+
+   | メソッド | パス | 役割 |
+   |---|---|---|
+   | GET | `/users` | 会員の一覧を取得する |
+   | GET | `/users/{id}` | 会員を 1 件取得する |
+   | PUT | `/users/{id}` | 会員の内容を更新する |
+   | DELETE | `/users/{id}` | 会員を削除する |
+
+   > `{id}` は、実際の会員の ID が入る場所です。波括弧を含めてそのまま入力します。
+
+4. ステージは `$default`、自動デプロイを有効にして作成する
+5. API の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
 
 ## 5. API の CORS を設定する
 
-1. API Gateway で `travel-recommendation-api-<名前>` を開き **CORS** を選ぶ
+1. API Gateway で `users-admin-api-<名前>` を開き **CORS** を選ぶ
 2. 次の値を設定する
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 実際にサイトを開く URL のオリジン。Amplify はデプロイされたブランチ URL、S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com` |
-   | 許可されたメソッド | `POST`, `OPTIONS` |
+   | 許可されたオリジン | 管理画面を開くサイトのオリジン（Session3 の CORS と同じ値。S3 なら `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`） |
+   | 許可されたメソッド | `GET`, `PUT`, `DELETE`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
 
-3. 保存する。`$default` ステージの自動デプロイが有効なら設定は自動反映される
+3. 保存する
 
-ブラウザーで確認するときは実際の公開元 URL とスキームを許可します。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
+> `PUT` や `DELETE` を許可しないと、ブラウザーが要求を止めてしまい、管理画面に「Failed to fetch」と出ます。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。
 
-## 6. API の URL で動作を確かめる
+## 6. 管理画面に API の URL を設定して公開する
 
-この API の URL は、PowerShell などから直接呼び出して確かめます。Session1 のサイトのおすすめ欄は、Session5 の API を使います（Session5 で設定します）。
+`Session1/config.js` の `window.ADMIN_API_ENDPOINT` に、手順 4 で控えた URL を設定します。末尾に `/` は付けません。
 
-1. API Gateway の `travel-recommendation-api-<名前>` の概要で、URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾に `/` は付けない
-2. PowerShell で、次のように呼び出す
+```javascript
+window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
+```
 
-   ```powershell
-   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
-   $body = '{"prompt":"長野でそばを食べたい"}'
-   $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-   (Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body $bytes).answer
-   ```
+### 方法 A：Session1 の S3 静的サイトを更新する
 
-3. Bedrock からの日本語回答が表示されれば成功です
+1. S3 のバケットを開く
+2. `admin.html`、`admin.js`、`config.js` をアップロードする（既存の `config.js` は置き換える）
 
-> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
+### 方法 B：AWS Amplify Hosting
+
+Amplify の環境変数に、次を追加して再デプロイします。
+
+| キー | 値 |
+|---|---|
+| `ADMIN_API_ENDPOINT` | 手順 4 で控えた管理 API の URL |
+
+## 7. 管理画面で確かめる
+
+1. ブラウザーで、公開サイトの `admin.html` を開く（例: `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com/admin.html`）
+2. **会員一覧を取得** を押す
+   - 登録済みの会員が表に出れば成功です
+3. 会員の **編集** を押し、年齢などを変えて **更新** を押す。一覧の内容が変わることを確かめる
+4. 削除しても困らない会員の **削除** を押し、確認のダイアログで OK を押す。一覧から消えることを確かめる
+
+### PowerShell から API を呼んで確かめる（任意）
+
+```powershell
+$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+# 一覧
+(Invoke-RestMethod -Uri "$api/users").users
+```
 
 ## 確認ポイント
 
-- [ ] Lambda のテストで `statusCode: 200` が返る
-- [ ] HTTP API に `POST /`（パスなし）がある
-- [ ] サイトのオリジンが API CORS で許可されている
-- [ ] PowerShell で、日本語のおすすめを取得できる
+- [ ] Lambda のテストで、一覧が 200 で返る
+- [ ] HTTP API に 4 つのルート（`GET /users`、`GET /users/{id}`、`PUT /users/{id}`、`DELETE /users/{id}`）がある
+- [ ] CORS で `GET`, `PUT`, `DELETE`, `OPTIONS` と `content-type` を許可した
+- [ ] 管理画面で、一覧・更新・削除ができる
+
+## よくあるトラブルと対処法
+
+| 症状 | 確認すること |
+|---|---|
+| 「取得に失敗しました: Failed to fetch」 | CORS のオリジンとメソッド（`GET`, `PUT`, `DELETE`）を見直す。`config.js` の URL が正しいか、アップロードし直したかも確認する |
+| 「管理 API の URL は Session4 で config.js に設定します」 | `config.js` の `ADMIN_API_ENDPOINT` が空。設定してアップロードし直す |
+| 404 が返る | API のルートに `/users` と `/users/{id}` があるか、API の URL の末尾に余計なパスが付いていないかを確認する |
+| 画面の変更が反映されない | `admin.html`・`admin.js`・`config.js` を S3 にアップロードし直し、ブラウザーを再読み込みする |
 
 ## 片付け
 
-1. API Gateway の `travel-recommendation-api-<名前>` を削除する
-2. Lambda の `travel-recommendation-<名前>` を削除する
-3. IAM に作成された実行ロールを削除する（他の関数で共有していないことを確認）
+認証のない API を残さないため、**研修が終わったらすぐに** 行ってください。
 
-Bedrock への呼び出しは従量課金です。使い終わったら API を削除し、不要な呼び出しが続かないようにしてください。
+1. API Gateway の `users-admin-api-<名前>` を削除する
+2. Lambda の `users-admin-function-<名前>` を削除する（実行ロールは Session2 と共有しているため、ここでは削除しない）
+3. S3 から `admin.html` と `admin.js` を削除する（Amplify の場合は、環境変数 `ADMIN_API_ENDPOINT` を削除して再デプロイする）
 
-Bedrock API は認証されないため、CORS と API URL を公開範囲に注意して管理してください。
+Session2・Session3 のリソースは、これまでの手順どおり、すべての Session が終わってから削除します。
+
+## 次へ
+
+[Session5](../Session5/README.md) に進んでください。Amazon Bedrock で料理のおすすめを生成します。
