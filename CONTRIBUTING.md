@@ -27,7 +27,9 @@ Issues はリポジトリに関する **タスク・バグ・改善要望** を�
 | `session2` | 黄 | Session2（Lambda + DynamoDB）に関するタスク |
 | `session3` | 赤 | Session3（API Gateway HTTP API + CORS）に関するタスク |
 | `session4` | 紫 | Session4（会員管理画面）に関するタスク |
-| `session5` | 桃 | Session5（Amazon Bedrock）に関するタスク |
+| `session5` | 桃 | Session5（Aurora）に関するタスク |
+| `session6` | 緑 | Session6（Amazon Bedrock）に関するタスク |
+| `session7` | 橙 | Session7（店リストの tool_use）に関するタスク |
 | `docs` | 紺 | 手順書・ドキュメントの改善 |
 
 ### 登録済みのIssue一覧
