@@ -104,13 +104,15 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
 ## 3. Lambda 単体でテストする
 
-`update-user.json` と `delete-user.json` の `u-0001` は、実際に登録した会員の ID に置き換えます。
+`get-user.json`、`update-user.json`、`delete-user.json` の `u-0001` は、実際に登録した会員の ID に置き換えます。
 
 1. **テスト** タブで **新しいイベント** を作り、`test-events/list-users.json` を貼り付けて実行する
    - `statusCode` が **200** で、`users` に登録済みの会員が出れば成功です
-2. `test-events/update-user.json`（ID を置き換える）を実行する
+2. `test-events/get-user.json`（ID を置き換える）を実行する
+   - `statusCode` が **200** で、`body` に 1 件の会員の情報が出れば成功です。存在しない ID で実行すると **404** になります
+3. `test-events/update-user.json`（ID を置き換える）を実行する
    - `statusCode` が **200** になれば成功です。もう一度 `list-users.json` を実行し、年齢などが変わったことを確かめます
-3. `test-events/delete-user.json` は、削除しても困らない会員の ID で実行する
+4. `test-events/delete-user.json` は、削除しても困らない会員の ID で実行する
    - `statusCode` が **204** で、一覧から消えれば成功です。同じ ID でもう一度実行すると **404** になります
 
 > **エラーが出たら**: `KeyError: 'TABLE_NAME'` は環境変数の未設定です。`AccessDeniedException` は、実行ロールの DynamoDB 権限を確かめてください。
@@ -153,7 +155,7 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 手順 4 の **管理画面用バケット** のオリジン（`http://<バケット名>-admin.s3-website-ap-northeast-1.amazonaws.com`）。Session3 の会員向けサイトのオリジンとは別の値です |
+   | 許可されたオリジン | 手順 4 の **管理画面用バケット** のオリジン（`http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`）。Session3 の会員向けサイトのオリジンとは別の値です |
    | 許可されたメソッド | `GET`, `PUT`, `DELETE`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
@@ -181,7 +183,7 @@ window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazo
 
 ## 8. 管理画面で確かめる
 
-1. ブラウザーで、管理画面用バケットの `admin.html` を開く(例: `http://<バケット名>-admin.s3-website-ap-northeast-1.amazonaws.com/admin.html`)
+1. ブラウザーで、管理画面用バケットの `admin.html` を開く(例: `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com/admin.html`)
 2. **会員一覧を取得** を押す
    - 登録済みの会員が表に出れば成功です
    - **表示をクリア** を押すと、表と検索欄が空に戻ります（会員のデータは消えません）
