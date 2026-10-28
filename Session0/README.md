@@ -101,6 +101,7 @@ Git を使わずに入手する方法です。更新を取り込むときは、�
 - [ ] `Session2` フォルダ（`app.py` を含む）
 - [ ] `Session3` フォルダ（`README.md` を含む）
 - [ ] `Session4` フォルダ（`lambda_function.py` を含む）
+- [ ] `Session5` フォルダ（`lambda_function.py` を含む）
 - [ ] `README.md`（教材の全体案内）
 
 ---

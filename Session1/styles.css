@@ -38,7 +38,7 @@ nav ul li a:hover {
 }
 
 main {
-    padding: 2rem;
+    padding: 2rem 2rem 6rem;
     max-width: 1200px;
     margin: 0 auto;
 }
@@ -140,3 +140,45 @@ footer {
         cursor: pointer;
         border-radius: 4px;
     }
+
+#users {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    text-align: left;
+}
+
+.admin-table th {
+    background-color: #e8f5e9;
+}
+
+/* 管理画面のユーザID検索：ラベルの下に、入力欄とボタンを横に並べる */
+#searchForm {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#searchForm label {
+    flex-basis: 100%;
+    margin-bottom: 0;
+}
+
+#searchForm input {
+    flex: 1 1 12rem;
+    margin-bottom: 0;
+}
+
+#searchForm button {
+    padding: 0.5rem 1.5rem;
+}

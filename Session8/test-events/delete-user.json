@@ -1,0 +1,9 @@
+{
+  "version": "2.0",
+  "routeKey": "DELETE /users/{id}",
+  "rawPath": "/users/a-0001",
+  "pathParameters": {
+    "id": "a-0001"
+  },
+  "isBase64Encoded": false
+}

@@ -1,9 +1,8 @@
-# 教材ファイルと Amplify のビルド設定を push 対象にする
+# 教材ファイルを push 対象にする
 *
 !.gitignore
 !README.md
 !CONTRIBUTING.md
-!amplify.yml
 !.github/
 !.github/**
 !Session0/
@@ -18,8 +17,10 @@
 !Session4/**
 !Session5/
 !Session5/**
-!Session4/
-!Session4/**
+!Session6/
+!Session6/**
+!Session8/
+!Session8/**
 
 # Session2の仮想環境を除外
 Session2/.venv/

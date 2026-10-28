@@ -1,0 +1,7 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /",
+  "rawPath": "/",
+  "isBase64Encoded": false,
+  "body": "{\"id\": \"a-0001\", \"name\": \"山田太郎\", \"email\": \"yamada@example.com\", \"age\": 30, \"address\": \"東京都新宿区\", \"tel\": \"0312345678\"}"
+}

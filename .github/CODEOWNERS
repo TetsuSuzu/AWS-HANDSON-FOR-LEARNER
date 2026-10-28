@@ -18,11 +18,14 @@ Session2/  @TetsuSuzu
 # Session3: API Gateway HTTP API + CORS
 Session3/  @TetsuSuzu
 
-# Session4: Amazon Bedrock
+# Session4: 会員管理画面（一覧・更新・削除）
 Session4/  @TetsuSuzu
 
-# Session5: 検索ツール（tool_use）
+# Session5: Amazon Bedrock
 Session5/  @TetsuSuzu
+
+# Session6: 検索ツール（tool_use）
+Session6/  @TetsuSuzu
 
 # ドキュメント（README）
 *.md  @TetsuSuzu

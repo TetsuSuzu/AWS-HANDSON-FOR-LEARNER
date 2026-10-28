@@ -4,6 +4,8 @@
 
 写真と会員登録フォームを含む **静的ウェブサイト** を Amazon S3 でホスティングして公開します。会員登録フォームは Session3 で API に接続します。
 
+> **S3 バケットは 2 つに分けます**: 会員向けサイト（`index.html`）は、この Session で作るバケットに置きます。管理者用の画面（`admin.html`）は、個人情報を扱うため **別のバケット** に置きます。管理画面用のバケットは Session4 で作ります。
+
 ```
 【全体構成】
 
@@ -22,10 +24,12 @@
 |---|---|
 | `index.html` | ウェブサイトのメインページ（HTML。S3 にアップロードする） |
 | `app.js` | 会員登録と料理のおすすめの動き（JavaScript。S3 にアップロードする） |
+| `admin.html` | 管理者用の会員管理画面（Session4 で使う。**別の S3 バケット** に置くため、この Session ではアップロードしない） |
+| `admin.js` | 会員管理画面の動き（JavaScript。`admin.html` と同じく Session4 で使う） |
 | `styles.css` | ウェブサイトのデザイン設定 |
 | `photo1.png` | おすすめ風景①の画像（かぐらスキー場） |
 | `photo2.png` | おすすめ風景②の画像（富津海岸から望む富士山） |
-| `config.js` | 会員 API と Bedrock API のエンドポイント（Session3/4 で設定する） |
+| `config.js` | 会員 API・管理 API・Bedrock API のエンドポイント（Session3・4・6 で設定する）。会員向けサイトと管理画面の両方に置く |
 | `Bucketpolicy.txt` | S3 バケットを公開するためのポリシー設定 |
 
 ---
@@ -52,7 +56,7 @@
 
 | 項目 | 値 |
 |---|---|
-| バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`） |
+| バケット名 | <font color="red">lastname-firstname</font>（例：`yamada-taro`）。会員向けサイト用 |
 | AWS リージョン | **アジアパシフィック（東京） ap-northeast-1** |
 | パブリックアクセスをすべてブロック | **チェックを外す（ブロックを無効にする）** |
 
@@ -75,7 +79,7 @@
    - `config.js`
 4. **「アップロード」** をクリック
 
-> 6 ファイルすべてが「成功しました」と表示されれば OK です。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session5 の設定後に使えます。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session6 の設定後に使えます。
 
 ---
 
@@ -142,80 +146,25 @@
 
 ---
 
-## Step 5：CloudFront ディストリビューションを作成する
-
-CloudFront を S3 の前段に置くことで、**HTTPS 配信・世界規模のキャッシュ・高速配信** が実現できます。
-
-### 5-1. CloudFront の画面を開く
-
-1. AWS マネジメントコンソールで検索バーに `CloudFront` と入力して選択
-2. **「ディストリビューションを作成」** をクリック
-
-### 5-2. オリジンを設定する
-
-| 項目 | 値 |
-|---|---|
-| オリジンドメイン | **S3 バケット一覧には出てこないので手動入力**：<font color="red">lastname-firstname.s3-website-ap-northeast-1.amazonaws.com</font> |
-| プロトコル | **HTTP のみ** |
-
-> ⚠️ ドロップダウンで表示される S3 バケット名（`xxx.s3.amazonaws.com`）は **選ばないこと**。  
-> 静的ウェブサイトエンドポイント（`s3-website-ap-northeast-1`）を手動で入力してください。
-
-### 5-3. デフォルトのキャッシュビヘイビアを設定する
-
-| 項目 | 値 |
-|---|---|
-| ビューワープロトコルポリシー | **HTTP を HTTPS にリダイレクト** |
-| キャッシュポリシー | **CachingOptimized**（デフォルト） |
-| オリジンリクエストポリシー | なし（デフォルト） |
-
-### 5-4. 設定を完了する
-
-| 項目 | 値 |
-|---|---|
-| 料金クラス | **北米・欧州・アジア・中東・アフリカを使用**（または最安の「北米・欧州のみ」） |
-| デフォルトルートオブジェクト | `index.html` |
-
-**「ディストリビューションを作成」** をクリック
-
-> ⏳ ディストリビューションのデプロイには **5〜10 分** かかります。  
-> ステータスが「デプロイ中」→「有効」になれば完了です。
-
-### 5-5. CloudFront ドメインを確認する
-
-ディストリビューション一覧に表示される **「ドメイン名」** をメモします。
-
-```
-例: xxxxxxxxxxxx.cloudfront.net
-```
-
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、料理のおすすめ機能は Session5 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケット）は Session4、料理のおすすめ機能は Session6 で設定します。
 
-> ハンズオン終了後は CloudFront ディストリビューションを無効化して削除し、S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
-
-このドメインを使って `https://xxxxxxxxxxxx.cloudfront.net/` でアクセスできます。
+> ハンズオン終了後は S3 バケットを空にして削除してください。公開状態のバケットを不要なまま残さないようにします。
 
 ---
 
-## Step 6：動作確認
+## Step 5：動作確認
 
-### 6-1. ウェブサイトにアクセスする
+### 5-1. ウェブサイトにアクセスする
 
-CloudFront ドメインでアクセスします（HTTPS）：
-
-```
-https://xxxxxxxxxxxx.cloudfront.net/
-```
-
-S3 ウェブサイトエンドポイント（HTTP）でも引き続きアクセス可能です：
+S3 ウェブサイトエンドポイント（HTTP）でアクセスします：
 
 ```
 http://lastname-firstname.s3-website-ap-northeast-1.amazonaws.com/
 ```
 
-### 6-2. 各機能を確認する
+### 5-2. 各機能を確認する
 
 | 確認項目 | 期待する動作 |
 |---|---|
@@ -339,12 +288,6 @@ header {
 
 ## よくあるトラブルと対処法
 
-### ページが表示されない（AccessDenied エラー）
-
-- CloudFront ディストリビューションの **「デフォルトルートオブジェクト」** に `index.html` が設定されているか確認
-  - 設定場所：CloudFront → ディストリビューション → 「全般」タブ → 「設定を編集」
-  - 空欄のままだと `/` アクセス時に AccessDenied になります
-
 ### ページが表示されない（403 Forbidden エラー）
 
 - バケットポリシーが正しく設定されているか確認
@@ -358,12 +301,4 @@ header {
 
 ### AI おすすめ機能が動かない
 
-- `index.html` は書き換えず、Session5 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT`（Amplify なら同名の環境変数）に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session5 で設定します」と表示されるのが正常です
-
----
-
-## 完成サイト
-
-| サイト | URL |
-|---|---|
-| 勉強会サイト（Session1〜3統合） | https://d69f16572v74l.cloudfront.net/ |
+- `index.html` は書き換えず、Session6 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session6 で設定します」と表示されるのが正常です
