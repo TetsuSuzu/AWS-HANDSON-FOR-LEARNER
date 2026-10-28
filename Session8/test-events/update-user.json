@@ -1,0 +1,10 @@
+{
+  "version": "2.0",
+  "routeKey": "PUT /users/{id}",
+  "rawPath": "/users/a-0001",
+  "pathParameters": {
+    "id": "a-0001"
+  },
+  "isBase64Encoded": false,
+  "body": "{\"id\": \"a-0001\", \"name\": \"山田太郎\", \"email\": \"yamada@example.com\", \"age\": 31, \"address\": \"東京都新宿区\", \"tel\": \"0312345678\"}"
+}
