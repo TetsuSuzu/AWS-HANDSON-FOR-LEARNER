@@ -199,12 +199,34 @@ $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
 (Invoke-RestMethod -Uri "$api/users").users
 ```
 
+### CORS の設定を確かめる(ブラウザーなし)
+
+手順 6 の CORS が効いているかは、`Origin` ヘッダーを付けた `curl.exe` で応答ヘッダーを見ると確かめられます(PowerShell の `curl` は別のコマンドの別名なので、`curl.exe` と書きます)。管理画面は `PUT` と `DELETE` を使うので、メソッドごとに確かめます。
+
+```powershell
+# 手順 4 の管理画面用バケットのオリジン
+$origin = "http://<管理画面用バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+
+foreach ($method in "GET", "PUT", "DELETE") {
+    Write-Host "== $method =="
+    curl.exe -s -i -X OPTIONS "$api/users/sample-0001" -H "Origin: $origin" -H "Access-Control-Request-Method: $method" -H "Access-Control-Request-Headers: content-type"
+}
+
+# Session3 の会員向けサイトのオリジンでは、許可ヘッダーが返らないのが正しい
+curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: http://<会員向けバケット名>.s3-website-ap-northeast-1.amazonaws.com" -H "Access-Control-Request-Method: GET"
+```
+
+- 管理画面用のオリジンでは、3 つとも `access-control-allow-origin` が `$origin` と同じ値で返り、`access-control-allow-methods` に `GET`、`PUT`、`DELETE` が含まれます。
+- 会員向けサイトのオリジンでは `access-control-allow-origin` が出ません。管理画面を会員向けサイトとは別のバケットに分けた意味が、ここで確かめられます。
+- `curl.exe` は CORS を強制しません。成功したかどうかではなく、ヘッダーの有無を読んでください。
+
 ## 確認ポイント
 
 - [ ] Lambda のテストで、一覧が 200 で返る
 - [ ] HTTP API に 4 つのルート（`GET /users`、`GET /users/{id}`、`PUT /users/{id}`、`DELETE /users/{id}`）がある
 - [ ] 管理画面用の別バケットを作り、`admin.html` などをアップロードした
 - [ ] CORS で管理画面用バケットのオリジンと、`GET`, `PUT`, `DELETE`, `OPTIONS`、`content-type` を許可した
+- [ ] `curl.exe` のプリフライトで、管理画面用のオリジンだけが許可されている
 - [ ] 管理画面で、一覧・ユーザIDでの検索・表示のクリア・更新・削除ができる
 
 ## よくあるトラブルと対処法

@@ -142,6 +142,16 @@ $b.answer
 $b.sources
 ```
 
+CORS の設定は、`Origin` ヘッダーを付けた `curl.exe` で確かめられます(PowerShell の `curl` は別のコマンドの別名なので、`curl.exe` と書きます)。
+
+```powershell
+$origin = "http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+curl.exe -s -i -X OPTIONS $apiB -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+```
+
+- 応答の `access-control-allow-origin` が `$origin` と同じ値で、`access-control-allow-methods` に `POST`、`access-control-allow-headers` に `content-type` が含まれていれば設定は正しいです。
+- `curl.exe` は CORS を強制しません。成功したかどうかではなく、ヘッダーの有無を読んでください。
+
 - `A` は、AI の知識だけで答えた回答です。
 - `B` は、店リストを読んだ上で答えた回答です。`sources` に、参照したマップの名前が出ます。
 
