@@ -128,16 +128,46 @@ Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset
 
 - 結果に `message` と `user` が出れば成功です。
 
+### CORS の設定を確かめる（ブラウザーなし）
+
+CORS を許可するかどうかを決めるのはブラウザーですが、ブラウザーが見るのは API の応答ヘッダーです。`Origin` ヘッダーを付けて `curl.exe` で呼ぶと、同じヘッダーを PowerShell から確かめられます。PowerShell の `curl` は別のコマンドの別名なので、必ず `curl.exe` と書きます。
+
+```powershell
+# 3-7 で許可したオリジン(Session1 の S3 ウェブサイト)
+$origin = "http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+
+# ① プリフライト: ブラウザーが POST の前に自動で送る OPTIONS を再現する
+curl.exe -s -i -X OPTIONS $api -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+
+# ② 許可していないオリジンでも試す(許可ヘッダーが返らないのが正しい)
+curl.exe -s -i -X OPTIONS $api -H "Origin: http://example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+```
+
+①の応答で、次を確かめます。
+
+| 見る場所 | 正しい状態 |
+|---|---|
+| 1 行目 | `HTTP/1.1 204`（または `200`） |
+| `access-control-allow-origin` | `$origin` と同じ値 |
+| `access-control-allow-methods` | `POST` を含む |
+| `access-control-allow-headers` | `content-type` を含む |
+
+②の応答には `access-control-allow-origin` が出ません。出ていたら、許可するオリジンを広げすぎています。
+
+> `curl.exe` は CORS を強制しません。ヘッダーがなくてもリクエスト自体は成功するので、成功したかどうかではなく、ヘッダーの有無を読んでください。
+
 ### 確認ポイント
 
 - [ ] POST で 201 相当の結果（`message` と `user`）が返る
+- [ ] プリフライトの応答に、許可したオリジンと `POST`、`content-type` が出る
+- [ ] 許可していないオリジンでは `access-control-allow-origin` が出ない
 
 > **うまくいかないとき**
 > - 404 Not Found: URL の末尾に `/v1/users` などを付けていないか確認（URL はそのまま使います）
 > - 500 エラー: Lambda の CloudWatch Logs を確認（2-7 の権限やテーブル名を見直す）
 > - 日本語が文字化けして見える: PowerShell の表示の問題のことが多いです。データの中身は、Lambda の一覧で確かめてください。
 >
-> PowerShell の呼び出しは API の動作確認には使えますが、ブラウザーの CORS 制約は検査しません。CORS を含めた確認には、公開した Web アプリを実際にブラウザーで開いて API を呼び出してください。
+> `Invoke-RestMethod` はブラウザーの CORS 制約を検査しません。CORS は上の `curl.exe` で応答ヘッダーを確かめ、最後は公開した Web アプリを実際にブラウザーで開いて確認してください。
 
 ## 3-9. 片付け（使い終わったら）
 
