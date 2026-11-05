@@ -165,6 +165,8 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 
 ## 5-A. サインアップから会員情報の登録まで
 
+> API Gateway の設定を変えたら、そのたびに **ステージ `dev` にデプロイされているか** を確かめてください（3 の「ポイント」を参照）。
+
 ## 1. ユーザープールを作る
 
 1. 検索欄に **Cognito** と入力して開く。リージョンが **ap-northeast-1** であることを確認する
@@ -173,13 +175,13 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 
    | 項目 | 設定値 |
    |---|---|
-   | アプリケーションタイプ | **シングルページアプリケーション（SPA）**（ブラウザーの JavaScript から使うため） |
-   | アプリケーション名（アプリクライアント名） | `users-client-<名前>` |
+   | アプリケーションタイプ | **シングルページアプリケーション（SPA）**（ブラウザーの JavaScript から使うため）。選択肢は「従来のウェブアプリケーション」「シングルページアプリケーション (SPA)」「モバイルアプリ」の 3 つ |
+   | アプリケーション名（アプリクライアント名） | `users-client-<名前>`（この画面で入力するのは、基本的にこの名前だけです） |
    | サインイン識別子のオプション | **ユーザー名** だけにチェック（メールアドレス・電話番号にはチェックしない） |
    | 自己登録（セルフサインアップ） | **有効** |
    | サインアップに必要な属性 | **email** |
-   | リターン URL | 空のまま（この教材は Cognito のログイン画面を使いません。入力が必須の場合は、Session1 の Amplify の URL を入れる） |
-   | ユーザープール名（入力欄がある場合） | `users-pool-<名前>` |
+   | リターン URL | この教材は Cognito のログイン画面を使わないので、**値は使いません**。入力が必要なら、どんな値でも構いません（例: Session1 の Amplify の URL、または `http://localhost`） |
+   | ユーザープール名（入力欄がある場合） | `users-pool-<名前>`。ウィザードがユーザープール名を自動で付けることがあります（例: `User pool - xxxxx`）。名前は手順に影響しないので、そのままで構いません |
 
 > **重要**: サインイン識別子は、作成後に変えられません。**ユーザー名を選んでください**。メールアドレスだけを選ぶと、ユーザー名が自動の値になり、会員 ID として使えません（ユーザー名とメールアドレスを両方選ぶと、メールアドレスは別名になります）。間違えたときは、ユーザープールを削除して作り直してください。
 >
@@ -198,6 +200,7 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 > **メールの注意**:
 > - Cognito の既定のメール送信は、**1 日あたり約 50 通** までです（AWS アカウントごと）。研修で同じ AWS アカウントを大勢で使うと、上限に達してメールが届かなくなることがあります。サインアップのやり直しは、むやみに繰り返さないでください。
 > - 確認コードのメールは `no-reply@verificationemail.com` から届きます。届かないときは **迷惑メール** のフォルダを確かめてください。
+> - 確認コードのメールの件名と本文は、既定では **英語** です（件名は「Your verification code」）。そのメールで正しい動きです。日本語に変えたいときは、任意で、ユーザープールの **メッセージテンプレート**（Message templates）で変えられます。画面の場所は、ユーザープールの設定の中から「メッセージテンプレート」を探してください（この教材では変えなくて構いません）。
 
 5. ユーザープールの概要に出る **ユーザープール ID**（例: `ap-northeast-1_AbCdEfGhI`）を控える
 
@@ -214,12 +217,14 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
    |---|---|
    | クライアントシークレット | **なし**（ブラウザーで使う公開のクライアントには、シークレットを付けません） |
 
-3. **認証フロー**（Authentication flows）の **編集** を開き、次の 2 つにチェックが入っている状態にして保存する。ほかのチェックは、そのままで構いません
+3. **認証フロー**（Authentication flows）の **編集** を開き、「ユーザー名とパスワード（`ALLOW_USER_PASSWORD_AUTH`）」にチェックが入っている状態にして保存する（すでに入っていれば、そのままで構いません）。ほかのチェックは、そのままで構いません
 
    | 認証フロー | 意味 |
    |---|---|
-   | `ALLOW_USER_PASSWORD_AUTH` | ユーザID とパスワードでログインする（この教材の画面と PowerShell が使う） |
-   | `ALLOW_REFRESH_TOKEN_AUTH` | トークンを更新する（この教材では使いませんが、既定で付いています） |
+   | `ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード） | ユーザID とパスワードでログインする（この教材の画面と PowerShell が使う）。**チェックが必要** |
+   | `ALLOW_REFRESH_TOKEN_AUTH`（更新トークン認証） | トークンを更新する。**常に有効**と画面に出て、チェックボックスはありません（この教材では使いません） |
+
+   > 画面には、選択ベースのサインイン（`ALLOW_USER_AUTH`）、SRP、サーバー側の管理者認証（`ALLOW_ADMIN_USER_PASSWORD_AUTH`）、カスタム認証（`ALLOW_CUSTOM_AUTH`）も並びますが、この教材では触りません。高度なセキュリティ設定にある **更新トークンのローテーション** は、有効にしないでください（有効にするには `ALLOW_REFRESH_TOKEN_AUTH` を無効にする必要があります）。トークンの有効期限（ID トークン・アクセストークン 60 分 = 1 時間、更新トークン 5 日）は、既定のままにします。
 
 4. **クライアント ID**（例: `1a2b3c4d5e6f7g8h9i0j1k2l3m`）を控える
 
@@ -227,7 +232,7 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 
 | 値 | 例 | 使う場所 |
 |---|---|---|
-| ユーザープール ID | `ap-northeast-1_AbCdEfGhI` | 3 の発行者 URL |
+| ユーザープール ID（ユーザープールの **概要** に出る） | `ap-northeast-1_AbCdEfGhI` | 3 の発行者 URL を組み立てる |
 | クライアント ID | `1a2b3c4d5e6f7g8h9i0j1k2l3m` | 3 の対象者、6 の PowerShell、7 の `config.js` |
 
 > **クライアント ID は秘密ではありません**: ブラウザーの `config.js` に書いて、誰でも見られる状態で公開します。シークレットのない公開クライアントなので、それで構いません。逆に、**秘密の値（クライアントシークレット、AWS のアクセスキーなど）は、JavaScript に絶対に書かないでください**。
@@ -236,7 +241,7 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 
 - [ ] ユーザープールのサインイン識別子が **ユーザー名** だけ
 - [ ] 必須の属性が `email`、自己登録が有効、メールアドレスを確認コードで検証する
-- [ ] アプリクライアントにシークレットがなく、`ALLOW_USER_PASSWORD_AUTH` が有効
+- [ ] アプリクライアントにシークレットがなく、`ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード）にチェックが入っている（更新トークン認証は常に有効で、チェック不要）
 - [ ] ユーザープール ID とクライアント ID を控えた
 
 ## 3. 会員 API に JWT オーソライザーを付ける
@@ -252,16 +257,43 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
    | 名前 | `cognito-<名前>` |
    | ID ソース（Identity source） | `$request.header.Authorization`（初期値のまま） |
    | 発行者 URL（Issuer URL） | `https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>` |
-   | 対象者（Audience） | 2 で控えた **クライアント ID** |
+   | 対象者（Audience） | 2 で控えた **クライアント ID**（入力して **追加** を押す。下の手順を参照） |
 
    発行者 URL の例: `https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_AbCdEfGhI`
+
+   **発行者 URL の作り方**: Cognito のコンソールに「発行者 URL」という項目はありません。ユーザープールの **概要** に出る **ユーザープール ID** を使って、自分で組み立てます。
+
+   ```text
+   https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>
+   ```
+
+   - 概要に **トークン署名キー URL** が表示されている場合は、突き合わせに使えます。発行者 URL は、その URL の末尾の `/.well-known/jwks.json` を取った形と同じです。
+   - 入力する前に、次の 3 つを確かめてください。
+     - [ ] `https://cognito-idp.ap-northeast-1.amazonaws.com/` で始まっている（リージョンが `ap-northeast-1`）
+     - [ ] 末尾がユーザープール ID（`ap-northeast-1_` で始まる文字列）で、末尾に `/` がない
+     - [ ] ユーザープール ID の大文字・小文字が、概要の表示と同じ
+
+   **対象者の入れ方**: 対象者の欄に 2 で控えた **クライアント ID** を貼り付け、**追加** を押します。一覧にクライアント ID が出れば追加できています。追加しないで作成すると、画面に「オーソライザーに関連付けられた対象者がありません」と出たままで、対象者のないオーソライザーになります。
 
 5. ルートの一覧で、`POST /` に `JWT` のオーソライザーが付いたことを確かめる
 
 > **ポイント**:
 > - 発行者 URL の末尾に `/` を付けないでください。ユーザープール ID の大文字・小文字も、そのまま書きます。1 文字でも違うと、正しいトークンでも 401 になります。
-> - ステージ `dev` の自動デプロイが有効なので、保存すると数秒で反映されます（Session3 の 3-4）。
 > - この時点から、トークンのない `POST /` は 401 になります。
+>
+> **ポイント（ステージ `dev` のデプロイ）**: ステージ `dev` の **自動デプロイ** が有効なら、保存すると数秒で反映されます（Session3 の 3-4）。**自動デプロイが無効（手動）のままだと、オーソライザーも CORS も、「デプロイ」を押すまで反映されません。** 無効のときは、オーソライザー・ルート・CORS を変えるたびに、ステージ `dev` に **デプロイ** を押してください。確かめ方は、API Gateway → `users-api-<名前>` → **ステージ** → `dev` を開き、**自動デプロイ** が有効か（手動か）を見ます。
+
+### ブラウザーだけで 401 を確かめる
+
+CLI がなくても、トークンなしの `POST /` が 401 になることを、ブラウザーで確かめられます。ログインする前に、会員向けサイトのページを開き、開発者ツール（F12）の **コンソール** で次を実行します。`<API の URL>` は Session3 で控えた会員 API の URL（末尾に `/` なし）です。
+
+```javascript
+fetch("<API の URL>/", {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"}).then(r => console.log(r.status)).catch(e => console.log("失敗:", e.message))
+```
+
+- `401` が出れば正しい状態です。
+- `失敗: Failed to fetch` が出たときは、CORS またはステージのデプロイがまだ済んでいません。4 と、上の「ステージ `dev` のデプロイ」を確かめてください。
+- `400` が出たときは、リクエストが Lambda まで届いています。オーソライザーが付いていないか、ステージにデプロイされていません。
 
 ## 4. 会員 API の CORS に `authorization` を足す
 
@@ -277,7 +309,9 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
    | 許可されたヘッダー | `content-type`, **`authorization`** |
    | 認証情報 | 無効（Session3 のまま） |
 
-3. 保存する
+3. 保存する。ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** も押す（3 を参照）
+
+保存してデプロイしたあとは、プリフライトが `authorization` を許可します。ブラウザーの開発者ツールの **ネットワーク** タブで、OPTIONS の要求が `204` で返れば正しい状態です。
 
 > プリフライト（OPTIONS）は、API Gateway が CORS の設定に従って答えます。オーソライザーは OPTIONS には働かないので、OPTIONS のルートを追加する必要はありません。
 
@@ -294,6 +328,15 @@ Session2 のコードとの違いは、`check_owner` が加わったことだけ
 - `get_claims(event)`: JWT オーソライザーが確かめたクレーム（`event["requestContext"]["authorizer"]["jwt"]["claims"]`）を取り出します。クレームがない（Lambda の画面のテストなど）ときは空です。
 - `check_owner(event, user)`: クレームがあるとき、本文の `id` がトークンの `cognito:username` と、本文の `email` がトークンの `email` と同じかを確かめます。違えば 403「ログインした本人の ID・メールアドレスで登録してください」を返します。
 - クレームがないときは確認を省くので、Session2 のテストイベント（`Session2/test-events/create-user.json`）は今までどおり動きます。
+
+### 5-A の 5 の確認：Lambda のテストで本人確認を確かめる（CLI なしでできます）
+
+Lambda の画面の **テスト** タブで、本人確認（`check_owner`）が働くことを確かめます。
+
+1. `users-function-<名前>` の **テスト** タブで、`Session5/test-events/create-user-other-id.json` の内容を貼り付けて実行する → 403「ログインした本人の ID・メールアドレスで登録してください」が返る
+2. `Session5/test-events/create-user-with-claims.json` の内容で実行する → 201 が返る（その `id` がすでに登録されていると 409 になります。`id` を変えて試してください）
+
+次の 6（PowerShell / AWS CLI）は、**飛ばして構いません**。7 のブラウザーでの確認が、6 の代わりになります。
 
 ## 6. PowerShell で確かめる
 
@@ -398,6 +441,8 @@ try {
 
 `Session1/config.js` の `window.COGNITO_CLIENT_ID` に、2 で控えたクライアント ID を設定します。`window.COGNITO_REGION` は `ap-northeast-1` のままです。ほかの値（API の URL など）はそのままです。Session3・4 で設定した `API_ENDPOINT` と `ADMIN_API_ENDPOINT` を消したり、上書きしたりしないでください。
 
+> **注意**: リポジトリの `Session1/config.js` は、API の URL が **空** になっています。S3 に置いてある（Session3・4 で `API_ENDPOINT` などを設定した）`config.js` に `COGNITO_CLIENT_ID` を足して使ってください。リポジトリの空の `config.js` をそのままアップロードすると、API の URL が消えます。
+
 ```javascript
 window.COGNITO_REGION = "ap-northeast-1";
 window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
@@ -407,13 +452,20 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
 
 ### 7-2. 会員向けサイトを更新する
 
-1. Session1 の **会員向けサイトの S3 バケット** を開き、次の 4 ファイルをバケット直下にアップロードして置き換える（`admin.html` と `admin.js` は、ここには置きません）
-   - `config.js`
+1. Session1 の **会員向けサイトの S3 バケット** を開き、次の 4 ファイルを **すべて** バケット直下にアップロードして置き換える（`admin.html` と `admin.js` は、ここには置きません）。`config.js` だけを更新して `app.js`・`index.html`・`styles.css` を上げ忘れると、サインアップの画面が出ません
+   - `config.js`（7-1 のとおり、`API_ENDPOINT` を残したもの）
    - `app.js`
    - `index.html`
    - `styles.css`
 2. Amplify の `site-<名前>` アプリを開き、ブランチ `dev` の **更新をデプロイ** を実行する（[Session1 の 3-4](../Session1/README.md)）
 3. デプロイが終わったら、ブラウザーでサイトを開き直す（画面が変わらないときは再読み込みする）
+
+サイトに反映されているファイルは、ブラウザーで確かめられます。
+
+| 開く URL | 探す文字 | 見つかれば |
+|---|---|---|
+| `<サイトの URL>/app.js` | `cognitoCall` | 新しい `app.js` が反映されている |
+| `<サイトの URL>/styles.css` | `[hidden]` | 新しい `styles.css` が反映されている |
 
 ### 7-3. ブラウザーで通す
 
@@ -421,11 +473,11 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
 
 1. ページの **新規会員募集** の欄に、サインアップの画面が出ることを確かめる
 2. ユーザID・メールアドレス・パスワードを入れて **サインアップ** を押す
-3. 「メールに確認コードを送りました。コードを入力してください。」と出たら、メールに届いた確認コードを入れて **確認する** を押す
+3. 「メールに確認コードを送りました。コードを入力してください。」と出たら、メールに届いた確認コードを入れて **確認する** を押す（メールの件名と本文は英語で、件名は「Your verification code」です。それで正しい動きです）
 4. 「確認が完了しました。ログインしてください。」と出たら、パスワードを入れて **ログイン** を押す
 5. 会員情報の登録フォームが出る。**ユーザID** と **メールアドレス** には、ログインした人の値が入っていて、書き換えられない
 6. 名前・年齢・住所・電話番号を入れて **登録** を押す。「会員登録しました。」と出れば成功です
-7. Session4 の管理画面か DynamoDB の画面で、`member-0002` が登録されたことを確かめる（管理画面は、5-B を始めるまでは今までどおり使えます）
+7. Session4 の管理画面か DynamoDB の画面（**項目を探索**）で、`member-0002` が登録されたことを確かめる（管理画面は、5-B を始めるまでは今までどおり使えます）
 
 ### 確認ポイント
 
@@ -485,6 +537,7 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
    | DELETE | `/users/{id}` |
 
 4. 4 つのルートすべてに `JWT` のオーソライザーが付いたことを確かめる。**1 つでも付け忘れると、そのルートはログインなしで呼べてしまいます**
+5. ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** を押す（5-A の 3 を参照）
 
 ## 3. 管理 API の CORS に `authorization` を足す
 
@@ -498,7 +551,7 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
    | 許可されたヘッダー | `content-type`, **`authorization`** |
    | 認証情報 | 無効（Session4 のまま） |
 
-3. 保存する
+3. 保存する。ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** も押す（5-A の 3 を参照）
 
 ## 4. 管理 API の Lambda を貼り替える
 
@@ -600,10 +653,13 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 | `NotAuthorizedException`（ユーザIDまたはパスワードが正しくありません） | ユーザID かパスワードの間違い | 入れ直す。パスワードは大文字・小文字を区別します |
 | `UserNotConfirmedException`（メールアドレスの確認が済んでいません） | 確認コードの入力がまだ | 確認コードを入力する（5-A の 6-4、画面では「確認コードを入力する」） |
 | `NEW_PASSWORD_REQUIRED`（画面に「追加の認証（NEW_PASSWORD_REQUIRED）が必要ですが、この画面では対応していません。」、CLI では `ChallengeName` が返る） | Cognito の画面の **ユーザーを作成** で作ったため、パスワードが仮のまま | そのユーザーを削除して、サインアップで作り直す（5-B の 1-1）。AWS のアクセスキーを設定済みなら、`aws cognito-idp admin-set-user-password --region ap-northeast-1 --user-pool-id <ユーザープールID> --username <ユーザID> --password '<新しいパスワード>' --permanent` で、パスワードを確定させてもよい |
-| `InvalidParameterException`（USER_PASSWORD_AUTH flow not enabled for this client など） | アプリクライアントで `ALLOW_USER_PASSWORD_AUTH` が有効になっていない | 5-A の 2 の認証フローで `ALLOW_USER_PASSWORD_AUTH` にチェックを入れて保存する |
+| `InvalidParameterException`（USER_PASSWORD_AUTH flow not enabled for this client など） | アプリクライアントで `ALLOW_USER_PASSWORD_AUTH` が有効になっていない | 5-A の 2 の認証フローで `ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード）にチェックを入れて保存する |
 | 確認コードのメールが届かない | 迷惑メールに入った、またはメール送信の上限（1 日約 50 通）に達した | 迷惑メールのフォルダを見る。上限のときは翌日まで待つ。急ぐときは 5-A の 6-4 の「代わりの方法」で確認する |
-| 画面で「登録に失敗しました: Failed to fetch」「取得に失敗しました: Failed to fetch」 | CORS で `authorization` ヘッダーを許可していないため、プリフライトで止まった | 会員 API（5-A の 4）・管理 API（5-B の 3）の許可ヘッダーに `authorization` を足す。`config.js` の URL も確かめる |
+| 画面で「登録に失敗しました: Failed to fetch」「取得に失敗しました: Failed to fetch」 | ① CORS で `authorization` ヘッダーを許可していないため、プリフライトで止まった。または ② ステージ `dev` が手動デプロイ（自動デプロイが無効）で、変更がデプロイされていない | 両方を確かめる。会員 API（5-A の 4）・管理 API（5-B の 3）の許可ヘッダーに `authorization` を足し、ステージ `dev` に **デプロイ** を押す（自動デプロイの確認は 5-A の 3）。`config.js` の URL も確かめる |
+| トークンなしの `POST /`（5-A の 3 のコンソールでの確認など）が 401 ではなく 400 になる（Lambda まで届いている） | オーソライザーが `POST /` に付いていない、またはステージ `dev` にデプロイされていない | 5-A の 3 でルートに `JWT` のオーソライザーが付いているか確かめ、ステージ `dev` に **デプロイ** する |
 | 画面にサインアップ・ログインが出ず、登録すると「登録に失敗しました: Unauthorized」 | `config.js` の `COGNITO_CLIENT_ID` が空（Session1〜4 と同じ動き）か、新しい `config.js` がサイトに反映されていない | 5-A の 7-1 で設定し、S3 に置き換えて Amplify で **更新をデプロイ** してから、再読み込みする |
+| `config.js` を更新したのに、サインアップの画面が出ない | `app.js`・`index.html`・`styles.css` をアップロードしていない（または Amplify の再デプロイ・キャッシュが原因） | 4 ファイルすべてをアップロードし、Amplify で **更新をデプロイ** する。5-A の 7-2 の表のとおり、`app.js` と `styles.css` が新しいかを確かめる |
+| 確認コード・ログイン・登録の画面が、すべて同時に表示される | `styles.css` が新しくなっていない | `styles.css` を S3 に置き換え、Amplify で **更新をデプロイ** する。`<サイトの URL>/styles.css` に `[hidden]` があるか確かめる |
 | 管理画面にログイン欄が出ず、「取得に失敗しました: Unauthorized」 | 管理画面用のバケットの `config.js` が古い | 5-B の 6 で、`config.js` を管理画面用のバケットにも置き換えて、`admin-<名前>` で **更新をデプロイ** する |
 | 500「サーバー内部でエラーが発生しました」 | Lambda の内部エラー（テーブル名の間違いなど） | Lambda の CloudWatch Logs を見る。環境変数 `TABLE_NAME` が `users-table-<名前>` か確かめる |
 
