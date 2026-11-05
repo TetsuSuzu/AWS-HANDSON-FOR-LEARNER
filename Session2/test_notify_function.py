@@ -75,6 +75,11 @@ class NotifyFunctionTest(unittest.TestCase):
     def test_build_message(self):
         self.assertEqual(nf.build_message("山田太郎"), (SUBJECT, BODY))
 
+    def test_missing_name_uses_default_greeting(self):
+        nf.lambda_handler(make_event(make_record(name=None)), None)
+        body = self.ses.send_email.call_args.kwargs["Message"]["Body"]["Text"]["Data"]
+        self.assertTrue(body.startswith("会員 様\n"))
+
     def test_modify_is_ignored(self):
         nf.lambda_handler(make_event(make_record("MODIFY")), None)
         self.ses.send_email.assert_not_called()

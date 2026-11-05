@@ -47,7 +47,8 @@ def get_string(image, key):
 
 
 def build_message(name):
-    """メールの件名と本文（テキスト）を作る。"""
+    """メールの件名と本文（テキスト）を作る。氏名が空のときは「会員 様」にする。"""
+    name = name or "会員"
     body = (
         f"{name} 様\n"
         "\n"
