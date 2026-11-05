@@ -115,9 +115,9 @@ Session5 とは別に、検索用の HTTP API を作ります。Session5 の API
    | メソッド | `POST` |
    | パス | `/`（何も入力しない） |
 
-4. **次へ** → **作成**。ステージは `$default` のまま、自動デプロイを有効にする
+4. **次へ** → **作成**。ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にする
 5. **CORS** で、Session1 のサイトのオリジンを許可する（`POST`、`OPTIONS`、`content-type`）
-6. 概要に表示される API の URL を控える（末尾に `/` は付けない）
+6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える（末尾に `/` は付けない）
 7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードする
 
    ```javascript

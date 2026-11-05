@@ -160,8 +160,8 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 2. **API を作成** → **HTTP API** → **構築** を選ぶ
 3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
 4. ルートに `POST /`（パスなし）を追加し、統合先が上記 Lambda であることを確認する
-5. ステージは `$default`、自動デプロイを有効にして作成する
-6. API の詳細に表示される URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
+5. ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にして作成する
+6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾の `/` は付けない
 
 ## 5. API の CORS を設定する
 
@@ -175,7 +175,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
 
-3. 保存する。`$default` ステージの自動デプロイが有効なら設定は自動反映される
+3. 保存する。`dev` ステージの自動デプロイが有効なら設定は自動反映される
 
 ブラウザーで確認するときは実際の公開元 URL とスキームを許可します。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
 
@@ -183,11 +183,11 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 この API の URL は、PowerShell などから直接呼び出して確かめます。Session1 のサイトのおすすめ欄は、Session6 の API を使います（Session6 で設定します）。
 
-1. API Gateway の `travel-recommendation-api-<名前>` の概要で、URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾に `/` は付けない
+1. API Gateway の `travel-recommendation-api-<名前>` のステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾に `/` は付けない
 2. PowerShell で、次のように呼び出す
 
    ```powershell
-   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
    $body = '{"prompt":"長野でそばを食べたい"}'
    $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
    (Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body $bytes).answer
