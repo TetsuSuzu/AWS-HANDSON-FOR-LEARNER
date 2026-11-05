@@ -118,7 +118,7 @@ Session5 とは別に、検索用の HTTP API を作ります。Session5 の API
 4. **次へ** → **作成**。ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にする
 5. **CORS** で、Session1 のサイトのオリジンを許可する（`POST`、`OPTIONS`、`content-type`）
 6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える（末尾に `/` は付けない）
-7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードする
+7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードし、Amplify で **更新をデプロイ** する
 
    ```javascript
    window.SEARCH_API_ENDPOINT = "<控えた URL>";
@@ -147,7 +147,7 @@ $b.sources
 CORS の設定は、`Origin` ヘッダーを付けた `curl.exe` で確かめられます(PowerShell の `curl` は別のコマンドの別名なので、`curl.exe` と書きます)。
 
 ```powershell
-$origin = "http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+$origin = "https://dev.<アプリID>.amplifyapp.com"
 curl.exe -s -i -X OPTIONS $apiB -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 ```
 

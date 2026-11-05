@@ -86,31 +86,32 @@ Session1 の静的サイトから API を呼ぶには、API の URL を `Session
 window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev";
 ```
 
-### Session1 の S3 静的サイトを更新する
+### Session1 のサイトを更新する
 
 1. `Session1/config.js` の `window.API_ENDPOINT` に API の URL を設定する
 2. AWS コンソールで Session1 の S3 バケットを開く
-3. `index.html`、`app.js`、`config.js`、`styles.css`、`photo1.png`、`photo2.png` をバケット直下へアップロードし、既存ファイルは置き換える（`admin.html` と `admin.js` は別のバケットに置くため、ここでは上げません）
-4. Session1 のサイト URL を開いて、会員登録フォームから登録を試す
+3. `config.js` をバケット直下へアップロードし、既存ファイルを置き換える（ほかのファイルを変えたときは、そのファイルも置き換える。`admin.html` と `admin.js` は別のバケットに置くため、ここでは上げません）
+4. Amplify の `site-<名前>` アプリを開き、ブランチ `dev` の **更新をデプロイ** を実行する（[Session1 の 3-4](../Session1/README.md)）
+5. Session1 のサイト URL（Amplify の URL）を開いて、会員登録フォームから登録を試す
 
-S3 ウェブサイトエンドポイントは HTTP です。S3 の静的ウェブサイトホスティングはウェブサイトファイルを公開します。機密情報は置かないでください。
+Amplify で公開したサイトは、誰でも閲覧できます。機密情報は置かないでください。
 
 ### 確認ポイント
 
-- [ ] Session1 のサイトを更新した
+- [ ] `config.js` を S3 に置き換え、Amplify で再デプロイした
 - [ ] 公開先の URL を控えた（次の CORS 設定で使用）
 - [ ] `Session1/config.js` に API エンドポイントを設定した
 
 ## 3-7. CORS を設定する
 
-CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の S3 ウェブサイトエンドポイントの「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
+CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の Amplify の URL の「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
 
 1. **API Gateway** → `users-api-<名前>` → **CORS** を開く（API の **設定** 内にある場合もあります）
 2. 次のとおり設定する
 
    | 項目 | 設定値 |
    |---|---|
-   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。S3 ウェブサイトは `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`。複数の URL から使う場合は各オリジンを追加 |
+   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。Amplify は `https://dev.<アプリID>.amplifyapp.com`（Session1 の 3-3 で控えた URL）。複数の URL から使う場合は各オリジンを追加 |
    | 許可されたメソッド（Access-Control-Allow-Methods） | `POST`, `OPTIONS` |
    | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
@@ -146,8 +147,8 @@ Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset
 CORS を許可するかどうかを決めるのはブラウザーですが、ブラウザーが見るのは API の応答ヘッダーです。`Origin` ヘッダーを付けて `curl.exe` で呼ぶと、同じヘッダーを PowerShell から確かめられます。PowerShell の `curl` は別のコマンドの別名なので、必ず `curl.exe` と書きます。
 
 ```powershell
-# 3-7 で許可したオリジン(Session1 の S3 ウェブサイト)
-$origin = "http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+# 3-7 で許可したオリジン(Session1 の Amplify のサイト)
+$origin = "https://dev.<アプリID>.amplifyapp.com"
 
 # ① プリフライト: ブラウザーが POST の前に自動で送る OPTIONS を再現する
 curl.exe -s -i -X OPTIONS $api -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
@@ -188,11 +189,12 @@ Session4 で、この Session の DynamoDB テーブルと Lambda 実行ロー�
 
 次の順番で削除してください（依存があるので、この順です）。
 
-1. S3 のバケット内のオブジェクトを空にしてからバケットを削除する
-2. API Gateway → `users-api-<名前>` を削除
-3. Lambda → `users-function-<名前>` を削除
-4. DynamoDB → `users-table-<名前>` テーブルを削除
-5. IAM → 実行ロール（`users-function-<名前>-role-xxxx`）を削除（任意）
+1. Amplify の `site-<名前>` アプリを削除する
+2. S3 のバケット内のオブジェクトを空にしてからバケットを削除する
+3. API Gateway → `users-api-<名前>` を削除
+4. Lambda → `users-function-<名前>` を削除
+5. DynamoDB → `users-table-<名前>` テーブルを削除
+6. IAM → 実行ロール（`users-function-<名前>-role-xxxx`）を削除（任意）
 
 ## 次の段階
 
