@@ -2,7 +2,7 @@
 
 > このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/d4ef7130a1c66b5fa8e734f6aca4bdad) にあります。使うファイルを開き、中身をコピーして使えます。
 
-Session3 では、会員登録（POST）だけを API にしました。Session4 では、管理者が登録済みの会員を **一覧表示・更新・削除** できる管理画面を作ります。この研修では認証（ログイン）は付けません。
+Session3 では、会員登録（POST）だけを API にしました。Session4 では、管理者が登録済みの会員を **一覧表示・更新・削除** できる管理画面を作ります。この Session では認証（ログイン）は付けません（[Session5](../Session5/README.md) で Cognito のログインを付けます）。
 
 ## 構成
 
@@ -30,12 +30,12 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 - AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** にする
 - `<名前>` は Session2・Session3 と同じ値を使う
 
-> **認証がないことに注意**: 管理 API は、会員の個人情報（名前、メールアドレス、住所、電話番号）を返し、削除もできます。この研修では手順を簡単にするため、**認証を付けていません**。API の URL と管理画面の URL を知っている人は、誰でも会員の閲覧・更新・削除ができます。
+> **認証がないことに注意**: 管理 API は、会員の個人情報（名前、メールアドレス、住所、電話番号）を返し、削除もできます。この Session では手順を簡単にするため、**認証を付けていません**（Session5 で付けます）。API の URL と管理画面の URL を知っている人は、誰でも会員の閲覧・更新・削除ができます。
 >
 > - 研修で使うテスト用の会員データだけを登録し、**実在の個人情報は入れない**でください。
 > - API の URL と管理画面の URL は、受講者以外に教えたり、画面共有や資料に載せたりしないでください。
 > - 研修が終わったら、**必ず** 「片付け」の手順で API と管理画面用の Amplify アプリ・バケットを削除してください。
-> - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。
+> - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。[Session5](../Session5/README.md) で、Amazon Cognito を使って管理者だけが使えるようにします。
 
 ## コードの読み方（lambda_function.py）
 
@@ -261,6 +261,8 @@ curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: https://dev.<会員向けア�
 
 Session2・Session3 のリソースは、これまでの手順どおり、すべての Session が終わってから削除します。
 
+> Session5 に進んで Cognito のログインを付けた場合は、削除の順番（オーソライザー、ユーザープール）を [Session5 の片付け](../Session5/README.md) で確かめてください。
+
 ## 次へ
 
-[Session5](../Session5/README.md) に進んでください。Amazon Bedrock で料理のおすすめを生成します。
+[Session5](../Session5/README.md) に進んでください。Amazon Cognito で、会員登録 API と管理 API にログインを付けます。その次の [Session6](../Session6/README.md) で、Amazon Bedrock による料理のおすすめを作ります。

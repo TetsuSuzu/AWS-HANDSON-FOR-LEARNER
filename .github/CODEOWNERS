@@ -21,7 +21,7 @@ Session3/  @TetsuSuzu
 # Session4: 会員管理画面（一覧・更新・削除）
 Session4/  @TetsuSuzu
 
-# Session5: Aurora（リレーショナルデータベース）
+# Session5: Amazon Cognito（サインアップとログイン）
 Session5/  @TetsuSuzu
 
 # Session6: Amazon Bedrock
@@ -29,6 +29,12 @@ Session6/  @TetsuSuzu
 
 # Session7: 検索ツール（tool_use）
 Session7/  @TetsuSuzu
+
+# Session8: Aurora（リレーショナルデータベース）
+Session8/  @TetsuSuzu
+
+# Session9: GitHub Actions と AWS の OIDC 連携
+Session9/  @TetsuSuzu
 
 # ドキュメント（README）
 *.md  @TetsuSuzu
