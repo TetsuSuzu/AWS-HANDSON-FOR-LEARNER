@@ -1,6 +1,6 @@
 # AWS ハンズオン：静的ウェブサイトを S3 で公開しよう
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session1_` で始まるファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/1e1dcc4e1520794f08db26b9812a4404) にあります。使うファイルを開き、中身をコピーして使えます。
 
 ## このハンズオンで作るもの
 

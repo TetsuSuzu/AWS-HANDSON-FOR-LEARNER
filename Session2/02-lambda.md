@@ -26,7 +26,7 @@ API からの要求を受けて、DynamoDB を読み書きするプログラム�
 4. 数秒待つと、関数の画面が開きます
 
 > **ランタイムとは？**
-> プログラムを動かすための「実行環境」です。Lambda では、プログラムを書く言語とそのバージョンを選びます。この教材の `app.py` は Python で書いているので、**Python 3.12** を選びます。言語やバージョンが合っていないと、プログラムが動かないことがあります。
+> プログラムを動かすための「実行環境」です。Lambda では、プログラムを書く言語とそのバージョンを選びます。この教材の `lambda_function.py` は Python で書いているので、**Python 3.12** を選びます。言語やバージョンが合っていないと、プログラムが動かないことがあります。
 >
 > **アーキテクチャとは？**
 > プログラムを動かす CPU（コンピューターの頭脳）の種類です。**x86_64** と **arm64** から選べます。この教材のプログラムはどちらでも動きますが、初期値の **x86_64** のまま進めます。
@@ -40,7 +40,7 @@ Lambda の画面にあるコードエディターを使います。ローカル�
 
 1. Lambda の画面で **コード** タブを開く
 2. コードソースにある `lambda_function.py` を開く
-3. `Session2/app.py` のコードをすべてコピーする（このフォルダ内のファイル）
+3. `Session2/lambda_function.py` のコードをすべてコピーする（このフォルダ内のファイル）
 4. `lambda_function.py` のエディターにある初期コードをすべて選択して、コピーしたコードに置き換える
 5. **Deploy（デプロイ）** をクリックし、変更を反映する
 
@@ -48,7 +48,7 @@ Lambda の画面にあるコードエディターを使います。ローカル�
 
 ### 別の方法：PowerShell で zip をアップロードする
 
-Lambda のコードを PowerShell で zip にしてアップロードする場合は、次の方法も使えます。コードは `Session2` フォルダ内の `app.py` を使います。
+Lambda のコードを PowerShell で zip にしてアップロードする場合は、次の方法も使えます。コードは `Session2` フォルダ内の `lambda_function.py` を使います。
 
 1. PowerShell を開き、`Session2` フォルダに移動する。コマンド中の `<ユーザー名>` と `<名前>` は実際の値に置き換える（`<` `>` は入力しない）
 
@@ -56,50 +56,39 @@ Lambda のコードを PowerShell で zip にしてアップロードする場�
    cd C:\Users\<ユーザー名>\AWS-HANDSON-FOR-LEARNER\Session2
    ```
 
-2. `app.py` を zip にする
+2. `lambda_function.py` を zip にする
 
    ```powershell
-   Compress-Archive -Path app.py -DestinationPath users-function-<名前>.zip -Force
+   Compress-Archive -Path lambda_function.py -DestinationPath users-function-<名前>.zip -Force
    ```
 
    > zip ファイルは現在の `Session2` フォルダに作成されます。
 
 3. Lambda の **コード** タブで **アップロード元** → **.zip ファイル** → **アップロード** を選び、作成した zip を指定する
 4. **保存** または **Deploy（デプロイ）** をクリックする
-5. ランタイム設定のハンドラーを `app.handler` に変更して保存する
 
-> **注意**: この方法ではファイル名が `app.py` なので、ハンドラーは `lambda_function.handler` ではなく `app.handler` にします。コンソール上でコードを書く方法と、zip をアップロードする方法のどちらか一方を選んでください。
+> **注意**: zip の中のファイル名も `lambda_function.py` なので、ハンドラーは初期値の `lambda_function.lambda_handler` のまま変更しません。コンソール上でコードを書く方法と、zip をアップロードする方法のどちらか一方を選んでください。
 
-### 2-4. ハンドラーを設定する（コンソールでコードを書く場合）
+### 2-4. ハンドラーを確認する
 
 > **ハンドラーとは？**
 > Lambda が呼び出されたとき、「どのファイルの、どの関数から動かすか」を指定する項目です。`ファイル名.関数名`（拡張子 `.py` は付けない）の形で書きます。
 
-コンソールでコードを書く方法では、`lambda_function.py` の `handler` 関数から始まるように設定します。PowerShell で zip をアップロードした場合は、2-3 の別の方法で設定した `app.handler` のままにしてください。
+コンソールで関数を「一から作成」すると、ハンドラーの初期値は `lambda_function.lambda_handler` になっています。この教材のコードは、ファイル名が `lambda_function.py`、関数名が `lambda_handler` なので、初期値のままで動きます。書き換えは不要です。念のため、次の手順で確認してください。
 
-コンソールで関数を「一から作成」すると、ハンドラーの初期値は `lambda_function.lambda_handler` になっています。ところが `app.py` の関数名は `lambda_handler` ではなく `handler` です。このままでは Lambda が関数を見つけられず、実行時に `Runtime.HandlerNotFound` のエラーになります。次の手順で `lambda_function.handler` に書き換えてください。
-
-1. **コード** タブの下の **ランタイム設定** → **編集**
-2. **ハンドラー** が初期値の `lambda_function.lambda_handler` になっていることを確認する
-3. **ハンドラー** を次のように書き換える（`lambda_` を消して `handler` だけにする）
-
-   | タイミング | ハンドラー |
-   |---|---|
-   | 初期値（書き換え前） | `lambda_function.lambda_handler` |
-   | 書き換え後 | `lambda_function.handler` |
+1. **コード** タブの下の **ランタイム設定** を見る
+2. **ハンドラー** が次の値になっていることを確認する
 
    ```
-   lambda_function.handler
+   lambda_function.lambda_handler
    ```
 
-4. **保存**
-
-> `lambda_function.handler` は「ファイル名 `lambda_function.py` の関数 `handler`」という意味です。詳しくは [README の「Lambda のハンドラとは？」](README.md#補足lambda-のハンドラとは) を見てください。
+> `lambda_function.lambda_handler` は「ファイル名 `lambda_function.py` の関数 `lambda_handler`」という意味です。詳しくは [README の「Lambda のハンドラとは？」](README.md#補足lambda-のハンドラとは) を見てください。
 
 ### 確認ポイント
 
 - [ ] **コード** タブに `lambda_function.py` が表示されている
-- [ ] **ランタイム設定** のハンドラーが、コンソールでコードを書く場合は `lambda_function.handler`（初期値の `lambda_function.lambda_handler` のままではない）、zip をアップロードした場合は `app.handler`
+- [ ] **ランタイム設定** のハンドラーが `lambda_function.lambda_handler`
 - [ ] ランタイムが Python 3.12
 
 ## 2-5. 環境変数を設定する

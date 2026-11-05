@@ -98,7 +98,7 @@ gh project item-add 4 \
 | Session | 主なファイル |
 |---|---|
 | Session1 | `index.html`、`app.js`、`styles.css`、画像、`config.js`、S3 バケットポリシー |
-| Session2 | DynamoDB/Lambda 手順、`app.py`、Lambda テストイベント |
+| Session2 | DynamoDB/Lambda 手順、`lambda_function.py`、Lambda テストイベント |
 | Session3 | HTTP API、CORS、S3 接続手順 |
 | Session4 | 会員管理画面（`admin.html`、`admin.js`。別バケットに置く）、管理 API の Lambda、テストイベント |
 

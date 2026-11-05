@@ -1,6 +1,6 @@
 # Session4 — 管理者用の会員管理画面を作る（一覧・更新・削除）
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session4_` で始まるファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/d4ef7130a1c66b5fa8e734f6aca4bdad) にあります。使うファイルを開き、中身をコピーして使えます。
 
 Session3 では、会員登録（POST）だけを API にしました。Session4 では、管理者が登録済みの会員を **一覧表示・更新・削除** できる管理画面を作ります。この研修では認証（ログイン）は付けません。
 
@@ -39,7 +39,7 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 
 ## コードの読み方（lambda_function.py）
 
-`lambda_function.py` は、管理画面からの要求を受け取り、DynamoDB の会員データを一覧・取得・更新・削除する Python のプログラムです。Session2 の `app.py` と似ていますが、「登録」がありません。
+`lambda_function.py` は、管理画面からの要求を受け取り、DynamoDB の会員データを一覧・取得・更新・削除する Python のプログラムです。Session2 の `lambda_function.py` と似ていますが、「登録」がありません。
 
 ### 用語の説明
 
