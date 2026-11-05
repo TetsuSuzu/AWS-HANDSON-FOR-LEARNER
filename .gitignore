@@ -26,3 +26,7 @@
 
 # Session2の仮想環境を除外
 Session2/.venv/
+
+# Python のキャッシュを除外
+__pycache__/
+*.pyc
