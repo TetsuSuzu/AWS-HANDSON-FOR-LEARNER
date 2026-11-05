@@ -58,12 +58,71 @@ git checkout <ブランチ名>
 
 ### A-4. 教材を更新する（あとから）
 
-教材が更新されたときは、フォルダの中で次のコマンドを実行します。
+教材が更新されたときは、`git pull` で GitHub の最新を取り込みます。講師から「教材を更新しました」と案内があったときに行ってください。
+
+**1. 手元の変更を確かめる**
 
 ```powershell
 cd $HOME\Desktop\AWS-HANDSON-FOR-LEARNER
+git status
+```
+
+- `nothing to commit, working tree clean` と出たら、手元に変更はありません。**3 に進みます**
+- `modified: Session1/config.js` のように、ファイルの名前が出たら、手元で書き換えたファイルがあります。**2 に進みます**。Session3・4 で `config.js` に API の URL を書いたあとは、たいていこの状態です
+
+**2. 書き換えたファイルを退避する（変更がある場合）**
+
+変更があるまま `git pull` を実行すると、次のようなエラーで止まります。
+
+```text
+error: Your local changes to the following files would be overwritten by merge:
+        Session1/config.js
+Please commit your changes or stash them before you merge.
+```
+
+これは、自分の書き換えを守るための動きです。次の手順で、書き換えた内容を別の場所に退避し、教材を最新にしてから、書き換えを戻します。
+
+```powershell
+# 自分の config.js をデスクトップにコピーしておく（API の URL などが入っている）
+Copy-Item Session1\config.js $HOME\Desktop\config.js.bak
+
+# 教材の config.js を、書き換える前の状態に戻す
+git restore Session1/config.js
+```
+
+ほかにも `modified:` と出たファイルがあれば、同じように退避してから `git restore <ファイルのパス>` を実行します。
+
+**3. 最新を取り込む**
+
+```powershell
 git pull
 ```
+
+`Already up to date.` と出たら、すでに最新です。ファイルの名前がいくつか並んだら、更新を取り込めています。
+
+**4. 退避した内容を戻す（2 を行った場合）**
+
+1. `$HOME\Desktop\config.js.bak` を、メモ帳などで開く
+2. 更新後の `Session1\config.js` を開き、`.bak` に書いてあった API の URL などを、同じ項目に書き写す
+
+   ```javascript
+   window.API_ENDPOINT = "（.bak の値）";
+   window.ADMIN_API_ENDPOINT = "（.bak の値）";
+   ```
+
+   更新で**新しい項目が増えている**場合があります（例: `COGNITO_REGION`、`COGNITO_CLIENT_ID`）。新しい項目は、そのまま残します。`.bak` を丸ごと上書きコピーしないでください。新しい項目が消えます。
+
+**5. 更新できたかを確かめる**
+
+```powershell
+git log -1 --oneline
+```
+
+最新の更新の説明が 1 行出ます。講師が伝えた内容と合っていれば、更新できています。
+
+> **ブランチを指定されていた場合**（A-3）は、そのブランチの上で `git pull` します。ブランチを変えたいときは、`git checkout <ブランチ名>` のあとに `git pull` を実行します。
+>
+> **更新で Session の番号や内容が変わる**ことがあります。更新したあとは、講師が案内する Session の番号を確かめてから、手順書を開いてください。
 
 ---
 
@@ -90,6 +149,32 @@ Git を使わずに入手する方法です。更新を取り込むときは、�
 4. `AWS-HANDSON-FOR-LEARNER-main` というフォルダができれば成功です
 
 > フォルダ名の末尾の `-main` は、ダウンロードしたブランチによって異なります。手順の中では、どちらのフォルダを使っても構いません。
+
+
+### B-3. 教材を更新する（あとから）
+
+zip には、更新を取り込む機能（`git pull`）がありません。教材が更新されたときは、新しい zip をダウンロードして、置き換えます。**古いフォルダは、すぐには削除しないでください。**
+
+1. B-1・B-2 と同じ手順で、最新の zip をダウンロードして展開する（古いフォルダとは別の場所か、別の名前にする。例: デスクトップに `AWS-HANDSON-FOR-LEARNER-new`）
+2. 古いフォルダの `Session1\config.js` を、メモ帳などで開く（API の URL などが書いてあります）
+3. 新しいフォルダの `Session1\config.js` を開き、古い `config.js` に書いてあった API の URL などを、同じ項目に書き写す
+
+   ```javascript
+   window.API_ENDPOINT = "（古い config.js の値）";
+   window.ADMIN_API_ENDPOINT = "（古い config.js の値）";
+   ```
+
+   更新で**新しい項目が増えている**場合があります（例: `COGNITO_REGION`、`COGNITO_CLIENT_ID`）。新しい項目は、そのまま残します。古い `config.js` を丸ごとコピーして上書きしないでください。新しい項目が消えます。
+4. ほかにも自分で書き換えたファイルがあれば、同じように内容を写す
+5. 以降は、**新しいフォルダ**を使う。古いフォルダは、動作を確かめてから削除する
+
+### B-4. zip から git に切り替える（おすすめ）
+
+zip で入手した人も、あとから git に切り替えると、次回からは `git pull` で更新できます。
+
+1. 方法 A の A-1・A-2 で、教材を **別の場所に clone** する（zip を展開したフォルダとは別のフォルダ）
+2. 古い（zip の）フォルダの `Session1\config.js` の内容を、clone した `Session1\config.js` に書き写す（B-3 の 3 と同じです。新しい項目は残します）
+3. 以降は、clone したフォルダを使う
 
 ---
 
