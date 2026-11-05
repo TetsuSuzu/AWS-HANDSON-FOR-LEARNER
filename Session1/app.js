@@ -18,7 +18,8 @@ document.getElementById("registerButton").addEventListener("click", async functi
     status.textContent = "登録しています...";
 
     try {
-        var response = await fetch(apiEndpoint, {
+        // ルート POST / を呼ぶため、URL の末尾に / を付けて送る（ステージ名だけの URL では届かない）
+        var response = await fetch(apiEndpoint + "/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(user)
@@ -52,7 +53,8 @@ document.getElementById("recommendationButton").addEventListener("click", async 
 
     status.textContent = "おすすめを考えています...";
     try {
-        var response = await fetch(endpoint, {
+        // ルート POST / を呼ぶため、URL の末尾に / を付けて送る
+        var response = await fetch(endpoint + "/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ prompt: prompt })

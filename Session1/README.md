@@ -257,7 +257,7 @@ window.SEARCH_API_ENDPOINT = "";
    - URL が未設定なら、メッセージを表示して終わります。
 6. `var user = Object.fromEntries(formData.entries());` と `user.age = Number(user.age);`
    - 入力された内容を 1 つのデータ（オブジェクト）にまとめます。年齢は文字から数字に変換します。
-7. `await fetch(apiEndpoint, { method: "POST", ... })`（API の URL にそのまま POST する）
+7. `await fetch(apiEndpoint + "/", { method: "POST", ... })`（API の URL の末尾に `/` を付けて POST する。ルート `POST /` を呼ぶため）
    - API に、データを送ります（`POST` は「登録の要求」の意味です）。
    - `body: JSON.stringify(user)` は、JavaScript のデータを JSON の文字に変換して送るという意味です。
    - `await` で、API からの返事を待ちます。

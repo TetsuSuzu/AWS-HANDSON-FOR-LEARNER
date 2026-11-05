@@ -134,12 +134,12 @@ $bytes = [System.Text.Encoding]::UTF8.GetBytes('{"prompt":"東京駅八重洲口
 
 # A: ツールなし（Session5 の API の URL）
 $apiA = "<Session5 の API の URL>"
-$a = Invoke-RestMethod -Method Post -Uri $apiA -ContentType "application/json; charset=utf-8" -Body $bytes
+$a = Invoke-RestMethod -Method Post -Uri "$apiA/" -ContentType "application/json; charset=utf-8" -Body $bytes
 $a.answer
 
 # B: 店リストのツールあり（Session6 の API の URL）
 $apiB = "<検索用の API の URL>"
-$b = Invoke-RestMethod -Method Post -Uri $apiB -ContentType "application/json; charset=utf-8" -Body $bytes
+$b = Invoke-RestMethod -Method Post -Uri "$apiB/" -ContentType "application/json; charset=utf-8" -Body $bytes
 $b.answer
 $b.sources
 ```
@@ -148,7 +148,7 @@ CORS の設定は、`Origin` ヘッダーを付けた `curl.exe` で確かめら
 
 ```powershell
 $origin = "https://dev.<アプリID>.amplifyapp.com"
-curl.exe -s -i -X OPTIONS $apiB -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+curl.exe -s -i -X OPTIONS "$apiB/" -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 ```
 
 - 応答の `access-control-allow-origin` が `$origin` と同じ値で、`access-control-allow-methods` に `POST`、`access-control-allow-headers` に `content-type` が含まれていれば設定は正しいです。

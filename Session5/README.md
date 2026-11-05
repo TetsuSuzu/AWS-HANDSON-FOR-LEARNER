@@ -190,7 +190,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
    $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
    $body = '{"prompt":"長野でそばを食べたい"}'
    $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-   (Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body $bytes).answer
+   (Invoke-RestMethod -Method Post -Uri "$api/" -ContentType "application/json; charset=utf-8" -Body $bytes).answer
    ```
 
 3. Bedrock からの日本語回答が表示されれば成功です
