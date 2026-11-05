@@ -9,6 +9,91 @@ var searchInput = document.getElementById("searchId");
 // 直前に表示した内容（検索したユーザID。空なら全件）。更新・削除のあとに同じ表示へ戻すために覚えておく
 var lastSearchId = "";
 
+// config.js の COGNITO_CLIENT_ID が空の間（Session5 より前）は、従来どおりログインなしで使う
+function isCognitoEnabled() {
+    return typeof window.COGNITO_CLIENT_ID === "string" && window.COGNITO_CLIENT_ID !== "";
+}
+
+// ログイン後の ID トークン。画面を開いている間だけメモリに持ち、保存や表示はしない
+var idToken = "";
+var loginSection = document.getElementById("loginSection");
+var loginForm = document.getElementById("loginForm");
+var loginStatus = document.getElementById("loginStatus");
+var logoutArea = document.getElementById("logoutArea");
+var mainSections = [document.getElementById("auth"), document.getElementById("users"), logoutArea];
+
+// ログイン画面と管理画面（一覧・更新）を切り替える。ログインが無効のときは何もしない
+function showLoggedIn(isLoggedIn) {
+    if (!isCognitoEnabled()) {
+        return;
+    }
+    loginSection.hidden = isLoggedIn;
+    mainSections.forEach(function(section) {
+        section.hidden = !isLoggedIn;
+    });
+    if (!isLoggedIn) {
+        editSection.hidden = true;
+    }
+}
+
+async function cognitoCall(target, payload) {
+    var response = await fetch("https://cognito-idp." + window.COGNITO_REGION + ".amazonaws.com/", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/x-amz-json-1.1",
+            "X-Amz-Target": "AWSCognitoIdentityProviderService." + target
+        },
+        body: JSON.stringify(payload)
+    });
+    var result = {};
+    try {
+        result = await response.json();
+    } catch (e) {
+        result = {};
+    }
+    if (!response.ok) {
+        var name = String(result.__type || "UnknownError").split("#").pop();
+        var error = new Error(result.message || name);
+        error.name = name;
+        error.code = name;
+        throw error;
+    }
+    return result;
+}
+
+async function login(username, password) {
+    var result = await cognitoCall("InitiateAuth", {
+        AuthFlow: "USER_PASSWORD_AUTH",
+        ClientId: window.COGNITO_CLIENT_ID,
+        AuthParameters: { USERNAME: username, PASSWORD: password }
+    });
+    if (result.ChallengeName) {
+        throw new Error("追加の認証（" + result.ChallengeName + "）が必要ですが、この画面では対応していません。");
+    }
+    idToken = result.AuthenticationResult.IdToken;
+}
+
+// ログインの失敗を画面に出す文にする。Cognito のエラー名は日本語にし、それ以外は元のメッセージを使う
+function loginErrorMessage(error) {
+    switch (error.name) {
+        case "NotAuthorizedException":
+            return "ユーザIDまたはパスワードが正しくありません。";
+        case "UserNotFoundException":
+            return "このユーザIDは登録されていません。";
+        case "UserNotConfirmedException":
+            return "メールアドレスの確認が済んでいません。会員サイトで確認コードを入力してください。";
+        case "InvalidParameterException":
+            return "入力内容に誤りがあります。ユーザIDとパスワードを確認してください。";
+        case "LimitExceededException":
+        case "TooManyRequestsException":
+            return "操作の回数が多すぎます。しばらく待ってからもう一度お試しください。";
+        case "TypeError":
+            return "通信に失敗しました。ネットワークを確認してもう一度お試しください。";
+        default:
+            return error.message || "ログインに失敗しました。";
+    }
+}
+
 // API を呼ぶ共通の関数
 async function callApi(method, path, body) {
     if (!adminEndpoint) {
@@ -18,6 +103,12 @@ async function callApi(method, path, body) {
     if (body) {
         headers["Content-Type"] = "application/json";
     }
+    if (isCognitoEnabled()) {
+        if (!idToken) {
+            throw new Error("ログインしてください");
+        }
+        headers["Authorization"] = idToken;
+    }
     var response = await fetch(adminEndpoint + path, {
         method: method,
         headers: headers,
@@ -26,7 +117,15 @@ async function callApi(method, path, body) {
     // 削除に成功したときは本文がない（204）
     var result = response.status === 204 ? {} : await response.json();
     if (!response.ok) {
-        var error = new Error(result.message || "処理に失敗しました");
+        var message = result.message || "処理に失敗しました";
+        if (isCognitoEnabled() && response.status === 401) {
+            // トークンの期限切れ。ログイン画面に戻す
+            idToken = "";
+            showLoggedIn(false);
+            message = "ログインの有効期限が切れました。もう一度ログインしてください。";
+            loginStatus.textContent = message;
+        }
+        var error = new Error(message);
         error.status = response.status;
         throw error;
     }
@@ -183,3 +282,33 @@ document.getElementById("saveButton").addEventListener("click", saveUser);
 document.getElementById("cancelButton").addEventListener("click", function() {
     editSection.hidden = true;
 });
+
+if (isCognitoEnabled()) {
+    showLoggedIn(false);
+    loginForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+        var username = loginForm.elements.username.value.trim();
+        var password = loginForm.elements.password.value;
+        if (!username || !password) {
+            loginStatus.textContent = "ユーザIDとパスワードを入力してください。";
+            return;
+        }
+        loginStatus.textContent = "ログインしています...";
+        try {
+            await login(username, password);
+            loginStatus.textContent = "";
+            clearView();
+            showLoggedIn(true);
+        } catch (error) {
+            loginStatus.textContent = loginErrorMessage(error);
+        } finally {
+            loginForm.elements.password.value = "";
+        }
+    });
+    document.getElementById("logoutButton").addEventListener("click", function() {
+        idToken = "";
+        clearView();
+        showLoggedIn(false);
+        loginStatus.textContent = "ログアウトしました。";
+    });
+}
