@@ -97,10 +97,10 @@ gh project item-add 4 \
 
 | Session | 主なファイル |
 |---|---|
-| Session1 | `index.html`、`app.js`、`styles.css`、画像、`config.js`、S3 バケットポリシー |
+| Session1 | `index.html`、`app.js`、`styles.css`、画像、`config.js`、S3 と Amplify の手順 |
 | Session2 | DynamoDB/Lambda 手順、`lambda_function.py`、Lambda テストイベント |
-| Session3 | HTTP API、CORS、S3 接続手順 |
-| Session4 | 会員管理画面（`admin.html`、`admin.js`。別バケットに置く）、管理 API の Lambda、テストイベント |
+| Session3 | HTTP API、ステージ、CORS、サイト接続手順 |
+| Session4 | 会員管理画面（`admin.html`、`admin.js`。別バケットと別の Amplify アプリに置く）、管理 API の Lambda、テストイベント |
 
 コードを変更するときは、手順書の例・セッション内のファイル・テストイベントを一緒に確認してください。Gist を補助的に使う場合も、リポジトリ内のファイルを正本として同期します。
 

@@ -7,7 +7,7 @@ Session3 では、会員登録（POST）だけを API にしました。Session4
 ## 構成
 
 ```text
-管理者のブラウザー（管理画面用の S3 バケットの admin.html）
+管理者のブラウザー（管理画面用の Amplify アプリの admin.html）
    │ GET / PUT / DELETE
    ▼
 API Gateway HTTP API（users-admin-api-<名前>）
@@ -21,7 +21,7 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 
 会員登録の API（Session3 の `users-api-<名前>`）は POST のみのまま変えません。管理の機能は、別の API と Lambda に分けます。
 
-管理画面の置き場所も、会員向けサイトとは **別の S3 バケット**（`<名前>-admin`）にします。個人情報を扱う画面の URL を、一般の会員に見せるサイトから切り離すためです。
+管理画面の置き場所も、会員向けサイトとは **別の S3 バケットと別の Amplify アプリ**（`<名前>-admin`）にします。個人情報を扱う画面の URL を、一般の会員に見せるサイトから切り離すためです。
 
 ## 事前準備
 
@@ -34,7 +34,7 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 >
 > - 研修で使うテスト用の会員データだけを登録し、**実在の個人情報は入れない**でください。
 > - API の URL と管理画面の URL は、受講者以外に教えたり、画面共有や資料に載せたりしないでください。
-> - 研修が終わったら、**必ず** 「片付け」の手順で API と管理画面用のバケットを削除してください。
+> - 研修が終わったら、**必ず** 「片付け」の手順で API と管理画面用の Amplify アプリ・バケットを削除してください。
 > - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。
 
 ## コードの読み方（lambda_function.py）
@@ -119,18 +119,19 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
 > **エラーが出たら**: `KeyError: 'TABLE_NAME'` は環境変数の未設定です。`AccessDeniedException` は、実行ロールの DynamoDB 権限を確かめてください。
 
-## 4. 管理画面用の S3 バケットを作る
+## 4. 管理画面用の S3 バケットと Amplify アプリを作る
 
-会員向けサイト（Session1）とは別のバケットを作り、公開の設定をします。手順は [Session1](../Session1/README.md) の Step 1・3・4 と同じです。違うのは次の点だけです。
+会員向けサイト（Session1）とは別のバケットとアプリを作ります。手順は [Session1](../Session1/README.md) の Step 1・3 と同じです。違うのは次の点だけです。
 
 | 項目 | 値 |
 |---|---|
 | バケット名 | <font color="red">lastname-firstname-admin</font>（例：`yamada-taro-admin`） |
-| パブリックアクセスをすべてブロック | チェックを外す |
-| 静的ウェブサイトホスティング | 有効にする。インデックスドキュメントとエラードキュメントは、どちらも `admin.html` |
-| バケットポリシー | Session1 の Step 4 と同じ内容。`Resource` のバケット名を `lastname-firstname-admin` にする |
+| パブリックアクセスをすべてブロック | ブロックしたまま（初期値） |
+| Amplify のアプリ名 | `admin-<名前>`（例：`admin-yamada-taro`） |
+| Amplify の S3 バケット | 上の管理画面用バケット（プレフィックスはバケットの直下） |
+| Amplify のブランチ名 | `dev` |
 
-> ファイルのアップロードは、手順 7 で行います。ウェブサイトエンドポイント（`http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`）を控えておきます。手順 6 の CORS で使います。
+> Amplify アプリの作成（デプロイ）は、ファイルをバケットに置いた後の手順 7 で行います。ここではバケットだけ作っておきます。
 
 ## 5. HTTP API を作成する
 
@@ -157,7 +158,7 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 手順 4 の **管理画面用バケット** のオリジン（`http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com`）。Session3 の会員向けサイトのオリジンとは別の値です |
+   | 許可されたオリジン | 手順 7 で作る **管理画面用 Amplify アプリ** のオリジン（`https://dev.<アプリID>.amplifyapp.com`）。Session3 の会員向けサイトのオリジンとは別の値です |
    | 許可されたメソッド | `GET`, `PUT`, `DELETE`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
@@ -174,18 +175,27 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev";
 ```
 
-手順 4 で作った **管理画面用のバケット** を開き、次の 4 ファイルをバケット直下にアップロードします。
+手順 4 で作った **管理画面用のバケット** を開き、次の 4 ファイルをバケット直下にアップロードします。その後、Amplify で公開します。
 
 - `admin.html`
 - `admin.js`
 - `styles.css`
 - `config.js`
 
-> 会員向けサイトのバケット(Session1)には、管理画面のファイルを置きません。管理画面は、この S3 バケットで公開します。
+> 会員向けサイトのバケット(Session1)には、管理画面のファイルを置きません。
+
+ファイルを置いたら、Amplify で公開します。
+
+1. Amplify で **Git なしでデプロイ** を選ぶ
+2. アプリ名 `admin-<名前>`、ブランチ名 `dev`、方法 **Amazon S3** で、管理画面用バケット（プレフィックスはバケットの直下）を選ぶ
+3. **保存してデプロイ** をクリックする
+4. 完了後に表示される URL（`https://dev.<アプリID>.amplifyapp.com`）を控える。手順 6 の CORS の許可オリジンには、この URL を登録する（手順 6 は、この URL を控えた後に戻って設定する）
+
+> 管理画面を書き換えたときは、S3 に置き換えてから、Amplify で **更新をデプロイ** を実行します。
 
 ## 8. 管理画面で確かめる
 
-1. ブラウザーで、管理画面用バケットの `admin.html` を開く(例: `http://<バケット名>.s3-website-ap-northeast-1.amazonaws.com/admin.html`)
+1. ブラウザーで、管理画面用 Amplify アプリの `admin.html` を開く(例: `https://dev.<アプリID>.amplifyapp.com/admin.html`)
 2. **会員一覧を取得** を押す
    - 登録済みの会員が表に出れば成功です
    - **表示をクリア** を押すと、表と検索欄が空に戻ります（会員のデータは消えません）
@@ -206,8 +216,8 @@ $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
 手順 6 の CORS が効いているかは、`Origin` ヘッダーを付けた `curl.exe` で応答ヘッダーを見ると確かめられます(PowerShell の `curl` は別のコマンドの別名なので、`curl.exe` と書きます)。管理画面は `PUT` と `DELETE` を使うので、メソッドごとに確かめます。
 
 ```powershell
-# 手順 4 の管理画面用バケットのオリジン
-$origin = "http://<管理画面用バケット名>.s3-website-ap-northeast-1.amazonaws.com"
+# 手順 7 の管理画面用 Amplify アプリのオリジン
+$origin = "https://dev.<管理画面用アプリID>.amplifyapp.com"
 
 foreach ($method in "GET", "PUT", "DELETE") {
     Write-Host "== $method =="
@@ -215,19 +225,19 @@ foreach ($method in "GET", "PUT", "DELETE") {
 }
 
 # Session3 の会員向けサイトのオリジンでは、許可ヘッダーが返らないのが正しい
-curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: http://<会員向けバケット名>.s3-website-ap-northeast-1.amazonaws.com" -H "Access-Control-Request-Method: GET"
+curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: https://dev.<会員向けアプリID>.amplifyapp.com" -H "Access-Control-Request-Method: GET"
 ```
 
 - 管理画面用のオリジンでは、3 つとも `access-control-allow-origin` が `$origin` と同じ値で返り、`access-control-allow-methods` に `GET`、`PUT`、`DELETE` が含まれます。
-- 会員向けサイトのオリジンでは `access-control-allow-origin` が出ません。管理画面を会員向けサイトとは別のバケットに分けた意味が、ここで確かめられます。
+- 会員向けサイトのオリジンでは `access-control-allow-origin` が出ません。管理画面を会員向けサイトとは別のアプリに分けた意味が、ここで確かめられます。
 - `curl.exe` は CORS を強制しません。成功したかどうかではなく、ヘッダーの有無を読んでください。
 
 ## 確認ポイント
 
 - [ ] Lambda のテストで、一覧が 200 で返る
 - [ ] HTTP API に 4 つのルート（`GET /users`、`GET /users/{id}`、`PUT /users/{id}`、`DELETE /users/{id}`）がある
-- [ ] 管理画面用の別バケットを作り、`admin.html` などをアップロードした
-- [ ] CORS で管理画面用バケットのオリジンと、`GET`, `PUT`, `DELETE`, `OPTIONS`、`content-type` を許可した
+- [ ] 管理画面用の別バケットと別の Amplify アプリを作り、`admin.html` などを公開した
+- [ ] CORS で管理画面用 Amplify アプリのオリジンと、`GET`, `PUT`, `DELETE`, `OPTIONS`、`content-type` を許可した
 - [ ] `curl.exe` のプリフライトで、管理画面用のオリジンだけが許可されている
 - [ ] 管理画面で、一覧・ユーザIDでの検索・表示のクリア・更新・削除ができる
 
@@ -238,7 +248,7 @@ curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: http://<会員向けバケッ
 | 「取得に失敗しました: Failed to fetch」 | CORS のオリジンとメソッド（`GET`, `PUT`, `DELETE`）を見直す。`config.js` の URL が正しいか、アップロードし直したかも確認する |
 | 「管理 API の URL は Session4 で config.js に設定します」 | `config.js` の `ADMIN_API_ENDPOINT` が空。設定してアップロードし直す |
 | 404 が返る | API のルートに `/users` と `/users/{id}` があるか、API の URL の末尾に余計なパスが付いていないかを確認する |
-| 画面の変更が反映されない | `admin.html`・`admin.js`・`config.js` を管理画面用バケットにアップロードし直し、ブラウザーを再読み込みする |
+| 画面の変更が反映されない | `admin.html`・`admin.js`・`config.js` を管理画面用バケットにアップロードし直し、Amplify で **更新をデプロイ** してから、ブラウザーを再読み込みする |
 
 ## 片付け
 
@@ -246,7 +256,8 @@ curl.exe -s -i -X OPTIONS "$api/users" -H "Origin: http://<会員向けバケッ
 
 1. API Gateway の `users-admin-api-<名前>` を削除する
 2. Lambda の `users-admin-function-<名前>` を削除する（実行ロールは Session2 と共有しているため、ここでは削除しない）
-3. 管理画面用の S3 バケット(`lastname-firstname-admin`)を空にして削除する
+3. Amplify の `admin-<名前>` アプリを削除する
+4. 管理画面用の S3 バケット(`lastname-firstname-admin`)を空にして削除する
 
 Session2・Session3 のリソースは、これまでの手順どおり、すべての Session が終わってから削除します。
 
