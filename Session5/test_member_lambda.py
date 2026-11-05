@@ -67,6 +67,16 @@ class CreateUserOwnerCheckTest(unittest.TestCase):
         self.assertEqual(res["statusCode"], 201)
         self.table.put_item.assert_called_once()
 
+    def test_incomplete_claims_returns_403_and_table_untouched(self):
+        res = lf.lambda_handler(make_event(claims={"cognito:username": "sample-0001"}), None)
+        self.assertEqual(res["statusCode"], 403)
+        self.table.put_item.assert_not_called()
+
+    def test_empty_claims_treated_as_no_claims_returns_201(self):
+        res = lf.lambda_handler(make_event(claims={}), None)
+        self.assertEqual(res["statusCode"], 201)
+        self.table.put_item.assert_called_once()
+
     def test_403_message_is_exact_and_table_untouched(self):
         res = lf.lambda_handler(make_event({"id": "sample-9999"}, claims=CLAIMS), None)
         self.assertEqual(json.loads(res["body"]), {"message": FORBIDDEN_MESSAGE})
