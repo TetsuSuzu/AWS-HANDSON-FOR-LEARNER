@@ -272,14 +272,14 @@ window.SEARCH_API_ENDPOINT = "";
 
 ```css
 header {
-    background-color: #2e7d32;
-    color: white;
+    background-color: #cfe8fc;
+    color: #0d3b66;
 }
 ```
 
 - `header` は「どの部品の見た目を変えるか」を表します。これを**セレクタ**と呼びます。
 - `{ ... }` の中には、「見た目の項目: 値;」を書きます。
-- `background-color` は背景色、`color` は文字の色です。`#2e7d32` は色を表す番号です。
+- `background-color` は背景色、`color` は文字の色です。`#cfe8fc` は色（薄いブルー）を表す番号です。
 - `margin` は部品の外側の余白、`padding` は部品の内側の余白です。
 - `.green-button` の `.` は、`class="green-button"` が付いた部品をまとめて指定する意味です。
 - `:hover` は、マウスを乗せたときの見た目を指定します。
