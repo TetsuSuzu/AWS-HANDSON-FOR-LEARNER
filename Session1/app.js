@@ -105,7 +105,7 @@ function cognitoErrorMessage(error) {
         case "CodeMismatchException":
             return "確認コードが正しくありません。メールに届いたコードをもう一度確認してください。";
         case "ExpiredCodeException":
-            return "確認コードの有効期限が切れています。もう一度サインアップしてください。";
+            return "確認コードの有効期限が切れています。確認コードを送り直してください（Session5 の「よくあるエラー」を見てください）。";
         case "InvalidPasswordException":
             return "パスワードが条件を満たしていません。長さや文字の種類（大文字・小文字・数字・記号）を確認してください。";
         case "InvalidParameterException":
@@ -119,7 +119,13 @@ function cognitoErrorMessage(error) {
         case "LimitExceededException":
         case "TooManyRequestsException":
             return "操作の回数が多すぎます。しばらく待ってからもう一度お試しください。";
+        case "TypeError":
+            return "通信に失敗しました。ネットワークを確認してもう一度お試しください。";
         default:
+            // Cognito のエラー名がない（login() が投げた Error など）ときは、元のメッセージを使う
+            if (error.message && (!name || name === "Error")) {
+                return error.message;
+            }
             return "エラーが発生しました（" + (name || "不明") + "）。";
     }
 }
@@ -146,8 +152,14 @@ function setupAuth() {
     $("showLoginFromSignup").addEventListener("click", function() { showPanel("login"); });
     $("showLoginFromConfirm").addEventListener("click", function() { showPanel("login"); });
     $("showSignupFromLogin").addEventListener("click", function() { showPanel("signup"); });
-    $("showConfirmFromSignup").addEventListener("click", function() { showPanel("confirm"); });
-    $("showConfirmFromLogin").addEventListener("click", function() { showPanel("confirm"); });
+    $("showConfirmFromSignup").addEventListener("click", function() {
+        $("confirmUsername").value = $("signupUsername").value.trim();
+        showPanel("confirm");
+    });
+    $("showConfirmFromLogin").addEventListener("click", function() {
+        $("confirmUsername").value = $("loginUsername").value.trim();
+        showPanel("confirm");
+    });
 
     $("signupButton").addEventListener("click", async function() {
         var status = $("signupStatus");

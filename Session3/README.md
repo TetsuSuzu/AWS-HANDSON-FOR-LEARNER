@@ -275,6 +275,8 @@ cd <このリポジトリ>\Session3
 
 Session4 で、この Session の DynamoDB テーブルと Lambda 実行ロールを引き続き使います。**Session4 以降を進める場合は、すべての Session が終わってから** 削除してください。
 
+> Session5 に進んで Cognito のログインを付けた場合は、削除の順番（オーソライザー、ユーザープール）を [Session5 の片付け](../Session5/README.md) で確かめてください。
+
 次の順番で削除してください（依存があるので、この順です）。
 
 1. Amplify の `site-<名前>` アプリを削除する

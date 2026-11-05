@@ -4,8 +4,7 @@
   "rawPath": "/",
   "rawQueryString": "",
   "headers": {
-    "content-type": "application/json",
-    "authorization": "Bearer <ID トークン>"
+    "content-type": "application/json"
   },
   "requestContext": {
     "http": {

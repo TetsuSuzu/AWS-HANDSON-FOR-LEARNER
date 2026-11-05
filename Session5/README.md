@@ -272,7 +272,7 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 
    | 項目 | 設定値 |
    |---|---|
-   | 許可されたオリジン | `*`（Session3 のまま） |
+   | 許可されたオリジン | Session3 で設定した値のまま（`*` またはサイトのオリジン） |
    | 許可されたメソッド | `POST`, `OPTIONS`（Session3 のまま） |
    | 許可されたヘッダー | `content-type`, **`authorization`** |
    | 認証情報 | 無効（Session3 のまま） |
@@ -419,7 +419,7 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
 
 6 で使った `member-0001` とは別のユーザID（例: `member-0002`）で試します。
 
-1. **会員登録** の欄に、サインアップの画面が出ることを確かめる
+1. ページの **新規会員募集** の欄に、サインアップの画面が出ることを確かめる
 2. ユーザID・メールアドレス・パスワードを入れて **サインアップ** を押す
 3. 「メールに確認コードを送りました。コードを入力してください。」と出たら、メールに届いた確認コードを入れて **確認する** を押す
 4. 「確認が完了しました。ログインしてください。」と出たら、パスワードを入れて **ログイン** を押す
@@ -576,7 +576,7 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 | `list-users-admin.json` | `users-admin-function-<名前>` | `cognito:groups` = `[admins]` | 200 |
 | `list-users-member.json` | `users-admin-function-<名前>` | `cognito:groups` = `[members]` | 403「管理者のみ利用できます」 |
 
-- 会員登録の 2 つのイベント（`create-user-with-claims.json`、`create-user-other-id.json`）の `headers` には、仮の `authorization` ヘッダー（`Bearer <ID トークン>`）が入っています。Lambda はこのヘッダーを読まず、クレームだけを見ます。トークンの確認は API Gateway のオーソライザーが行い、Lambda の画面のテストでは働かないためです。ID トークンを貼る必要はありません。管理 API の 2 つのイベントの `headers` は空です。
+- 会員登録の 2 つのイベント（`create-user-with-claims.json`、`create-user-other-id.json`）には、クレーム（`requestContext.authorizer.jwt.claims`）だけが入っています。トークンの確認は API Gateway のオーソライザーが行うので、Lambda 単体のテストでは `Authorization` ヘッダーも ID トークンも要りません。
 - 本物の呼び出し（PowerShell や画面）では、5-A の 6-6 のとおり、ID トークンを `Bearer` を付けずにそのまま `Authorization` ヘッダーに入れます。
 - Lambda の画面のテストは API Gateway を通らないので、JWT オーソライザーは働きません。401 はここでは確かめられません（5-A の 6 で確かめます）。
 - クレームのないイベントでは確認を省くので、[Session2](../Session2/README.md) の `test-events/create-user.json` と、[Session4](../Session4/README.md) の `test-events/` のイベントは、今までどおり使えます。
@@ -591,6 +591,7 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 | 401 `{"message":"Unauthorized"}` | トークンがない、期限切れ、または発行者 URL・対象者が合っていない | `Authorization` ヘッダーを付けたか確かめる。オーソライザーの発行者 URL（`https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>`、末尾 `/` なし）と、対象者（クライアント ID）を見直す。ログインし直してトークンを取り直す |
 | 画面で「ログインの有効期限が切れました。もう一度ログインしてください。」 | API が 401 を返した。ID トークンの期限（1 時間）切れが多い | もう一度ログインする。すぐに出るときは、上の 401 と同じくオーソライザーの設定を見直す |
 | 403「ログインした本人の ID・メールアドレスで登録してください」 | 本文の `id`・`email` が、トークンの `cognito:username`・`email` と違う | ログインした人の ID とメールアドレスで登録する。画面では自動で入るので、PowerShell の本文を見直す。サインイン識別子にメールアドレスだけを選んでいると、ユーザー名が自動の値になり、会員 ID と合わない（ユーザー名を選んで、ユーザープールを作り直す） |
+| 403「ログインした本人の ID・メールアドレスで登録してください」（アクセストークンを送った場合） | アクセストークンもオーソライザーは通るが、`cognito:username`・`email` のクレームがない（ユーザー名は `username`）ため、本人確認で一致しない | ID トークン（`IdToken`）を `Authorization` ヘッダーに入れる |
 | 403「管理者のみ利用できます」 | ログインした人が `admins` グループに入っていない | `admins` に入れる（グループ名のつづりも確かめる）。入れた後に **ログインし直す** |
 | `UsernameExistsException`（このユーザIDはすでに使われています） | 同じユーザID がすでにある（確認前のユーザーも含む） | 別のユーザID にする。確認コードの入力がまだなら、「確認コードを入力する」から確認する |
 | `CodeMismatchException`（確認コードが正しくありません） | 確認コードの入力違い | メールのコードを入れ直す。ユーザID も合っているか確かめる |

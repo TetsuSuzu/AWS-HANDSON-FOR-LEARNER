@@ -122,6 +122,7 @@ async function callApi(method, path, body) {
             // トークンの期限切れ。ログイン画面に戻す
             idToken = "";
             showLoggedIn(false);
+            clearView();
             message = "ログインの有効期限が切れました。もう一度ログインしてください。";
             loginStatus.textContent = message;
         }

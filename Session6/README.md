@@ -22,6 +22,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
+- Session5（Cognito）は Session6 には必須ではありません（Session5 を飛ばして進めても構いません）
 - Session1 の Amplify の URL を控えておく（ブラウザーでの動作確認に使う）
 - AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
 - Session6 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
@@ -195,7 +196,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 3. Bedrock からの日本語回答が表示されれば成功です
 
-> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
+> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。料理のおすすめの API は認証されていないため、実験用の範囲で使ってください。
 
 ## 確認ポイント
 
