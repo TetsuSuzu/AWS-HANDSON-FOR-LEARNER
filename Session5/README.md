@@ -11,7 +11,7 @@ Session3 の会員登録 API と Session4 の管理 API は、URL を知って�
 - AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** にする
 - `<名前>` は Session2〜4 と同じ値を使う
 - 確認コードを受け取れる **自分のメールアドレス** を用意する（研修用のアドレスで構いません）
-- 6 の PowerShell の確認では **AWS CLI v2** を使います。`aws --version` で入っているか確かめてください（入っていない場合は、6 を飛ばして 7 の画面で確かめても構いません）
+- 6 の PowerShell の確認では **AWS CLI v2** を使います。`aws --version` で入っているか確かめてください（5-B の 5 も同じです）。入っていない場合は、5-A の 6 と 5-B の 5 を飛ばしても構いません。そのあとの画面での確認（5-A の 7、5-B の 6）が、どちらの代わりにもなります
 
 この Session で使う、これまでのリソースは次のとおりです。
 
@@ -181,7 +181,7 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
    | リターン URL | 空のまま（この教材は Cognito のログイン画面を使いません。入力が必須の場合は、Session1 の Amplify の URL を入れる） |
    | ユーザープール名（入力欄がある場合） | `users-pool-<名前>` |
 
-> **重要**: サインイン識別子は、作成後に変えられません。**メールアドレスにチェックを入れると、ユーザー名（= 会員 ID）がランダムな値になり、本人確認が合わなくなります**。間違えたときは、ユーザープールを削除して作り直してください。
+> **重要**: サインイン識別子は、作成後に変えられません。**ユーザー名を選んでください**。メールアドレスだけを選ぶと、ユーザー名が自動の値になり、会員 ID として使えません（ユーザー名とメールアドレスを両方選ぶと、メールアドレスは別名になります）。間違えたときは、ユーザープールを削除して作り直してください。
 >
 > コンソールの画面は変わることがあります。上の項目名が見つからないときは、同じ働きの設定を探してください。
 
@@ -200,6 +200,8 @@ Lambda（users-function-<名前>）               Lambda（users-admin-function-
 > - 確認コードのメールは `no-reply@verificationemail.com` から届きます。届かないときは **迷惑メール** のフォルダを確かめてください。
 
 5. ユーザープールの概要に出る **ユーザープール ID**（例: `ap-northeast-1_AbCdEfGhI`）を控える
+
+> この後の手順で `users-pool-<名前>` を開くとき、名前が違う場合は、控えたユーザープール ID で探してください。
 
 ## 2. アプリクライアントを設定する
 
@@ -352,6 +354,8 @@ $token = aws cognito-idp initiate-auth --region $region --client-id $clientId --
 $token.Substring(0, 20)   # eyJ で始まる長い文字列なら成功（全体は表示しない）
 ```
 
+> `None` や Substring のエラーが出たら、`--query` 以降（`--query "AuthenticationResult.IdToken" --output text`）を外して実行し、表示された内容（`ChallengeName` やエラー名）を「よくあるエラー」で探してください。
+>
 > ID トークンは、有効期限（1 時間）まで本人として API を呼べる通行証です。画面共有や資料に載せないでください。
 
 ### 6-6. ID トークンを付けて登録すると 201 になる
@@ -392,7 +396,7 @@ try {
 
 ### 7-1. `config.js` にクライアント ID を設定する
 
-`Session1/config.js` の `window.COGNITO_CLIENT_ID` に、2 で控えたクライアント ID を設定します。`window.COGNITO_REGION` は `ap-northeast-1` のままです。Session3・4 で設定した `API_ENDPOINT` と `ADMIN_API_ENDPOINT` は、そのまま残します。
+`Session1/config.js` の `window.COGNITO_CLIENT_ID` に、2 で控えたクライアント ID を設定します。`window.COGNITO_REGION` は `ap-northeast-1` のままです。ほかの値（API の URL など）はそのままです。Session3・4 で設定した `API_ENDPOINT` と `ADMIN_API_ENDPOINT` を消したり、上書きしたりしないでください。
 
 ```javascript
 window.COGNITO_REGION = "ap-northeast-1";
@@ -448,7 +452,7 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
 
 ### 1-2. `admins` グループを作り、管理者を入れる
 
-1. Cognito → `users-pool-<名前>` → **グループ**（Groups）→ **グループを作成** をクリックする
+1. Cognito → `users-pool-<名前>`（名前が違う場合は、控えたユーザープール ID で探す）→ **グループ**（Groups）→ **グループを作成** をクリックする
 2. グループ名に `admins` と入力して作成する（ほかの項目は空のままで構いません）
 3. 作った `admins` を開き、**ユーザーをグループに追加** で `admin-0001` を追加する
 
@@ -508,7 +512,7 @@ window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
 Session4 のコードとの違いは、`require_admin` が加わったことだけです。
 
 - `get_groups(claims)`: クレームの `cognito:groups` をグループ名の一覧にします。HTTP API はこのクレームを `[admins]` のような文字列で渡すので、その形にも対応しています。
-- `require_admin(event)`: クレームがあるとき、`admins` が含まれているかを確かめ、なければ 403「管理者のみ利用できます」を返します。ルートを調べる前に確かめるので、管理者以外には、どのルートがあるかも分かりません。
+- `require_admin(event)`: クレームがあるとき、`admins` が含まれているかを確かめ、なければ 403「管理者のみ利用できます」を返します。どのルートの処理よりも先に確かめるので、4 つのルートすべてに同じ確認が効きます。
 - クレームがないときは確認を省くので、Session4 のテストイベントは今までどおり動きます。
 
 ## 5. PowerShell で確かめる
@@ -521,16 +525,20 @@ $adminApi = "https://yyyyyyyyyy.execute-api.ap-northeast-1.amazonaws.com/dev"   
 # ① トークンなし → 401
 try { Invoke-RestMethod -Uri "$adminApi/users" } catch { [int]$_.Exception.Response.StatusCode; $_.ErrorDetails.Message }
 
-# ② 一般の会員（5-A の 6 の member-0001）のトークン → 403「管理者のみ利用できます」
+# ② 一般の会員（member-0001）でログインし直して、そのトークン → 403「管理者のみ利用できます」
+#    5-A の 6-5 のトークンは期限（1 時間）が切れていることが多いので、6-5 と同じコマンドで取り直す
+$token = aws cognito-idp initiate-auth --region $region --client-id $clientId --auth-flow USER_PASSWORD_AUTH --auth-parameters "USERNAME=$user,PASSWORD=$password" --query "AuthenticationResult.IdToken" --output text
 try { Invoke-RestMethod -Uri "$adminApi/users" -Headers @{ Authorization = $token } } catch { [int]$_.Exception.Response.StatusCode; $_.ErrorDetails.Message }
 
-# ③ 管理者（admin-0001）でログインし直して、そのトークン → 200
+# ③ 管理者（admin-0001）でログインして、そのトークン → 200
 $adminPassword = '<admin-0001 のパスワード>'
 $adminToken = aws cognito-idp initiate-auth --region $region --client-id $clientId --auth-flow USER_PASSWORD_AUTH --auth-parameters "USERNAME=admin-0001,PASSWORD=$adminPassword" --query "AuthenticationResult.IdToken" --output text
 (Invoke-RestMethod -Uri "$adminApi/users" -Headers @{ Authorization = $adminToken }).users
 ```
 
 - ① は 401、② は 403、③ は登録済みの会員の一覧が出れば成功です。
+- ② が 401 なら、トークンの期限切れです。6-5 をもう一度実行してください（上の ② の `$token = ...` の行と同じです）。③ が 401 なら、`$adminToken = ...` の行をもう一度実行してください。
+- `$token` や `$adminToken` を取る行で `None` やエラーが出たら、`--query` 以降を外して実行し、表示された内容（`ChallengeName` やエラー名）を「よくあるエラー」で探してください。
 - ③ が 403 になるときは、`admin-0001` を `admins` に入れた **後に** ログインし直したか確かめてください。
 
 ## 6. 管理画面を更新して、ログインする
@@ -568,7 +576,8 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 | `list-users-admin.json` | `users-admin-function-<名前>` | `cognito:groups` = `[admins]` | 200 |
 | `list-users-member.json` | `users-admin-function-<名前>` | `cognito:groups` = `[members]` | 403「管理者のみ利用できます」 |
 
-- イベントの `headers` にある `"authorization": "Bearer <ID トークン>"` は、形を示すための仮の値です。Lambda はこのヘッダーを読まず、クレームだけを見ます（本物の要求では、トークンの確認は API Gateway が済ませています）。ID トークンを貼る必要はありません。
+- 会員登録の 2 つのイベント（`create-user-with-claims.json`、`create-user-other-id.json`）の `headers` には、仮の `authorization` ヘッダー（`Bearer <ID トークン>`）が入っています。Lambda はこのヘッダーを読まず、クレームだけを見ます。トークンの確認は API Gateway のオーソライザーが行い、Lambda の画面のテストでは働かないためです。ID トークンを貼る必要はありません。管理 API の 2 つのイベントの `headers` は空です。
+- 本物の呼び出し（PowerShell や画面）では、5-A の 6-6 のとおり、ID トークンを `Bearer` を付けずにそのまま `Authorization` ヘッダーに入れます。
 - Lambda の画面のテストは API Gateway を通らないので、JWT オーソライザーは働きません。401 はここでは確かめられません（5-A の 6 で確かめます）。
 - クレームのないイベントでは確認を省くので、[Session2](../Session2/README.md) の `test-events/create-user.json` と、[Session4](../Session4/README.md) の `test-events/` のイベントは、今までどおり使えます。
 - `create-user-with-claims.json` で登録した `sample-0001` は、不要なら管理画面で削除してください。
@@ -581,13 +590,13 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 |---|---|---|
 | 401 `{"message":"Unauthorized"}` | トークンがない、期限切れ、または発行者 URL・対象者が合っていない | `Authorization` ヘッダーを付けたか確かめる。オーソライザーの発行者 URL（`https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>`、末尾 `/` なし）と、対象者（クライアント ID）を見直す。ログインし直してトークンを取り直す |
 | 画面で「ログインの有効期限が切れました。もう一度ログインしてください。」 | API が 401 を返した。ID トークンの期限（1 時間）切れが多い | もう一度ログインする。すぐに出るときは、上の 401 と同じくオーソライザーの設定を見直す |
-| 403「ログインした本人の ID・メールアドレスで登録してください」 | 本文の `id`・`email` が、トークンの `cognito:username`・`email` と違う | ログインした人の ID とメールアドレスで登録する。画面では自動で入るので、PowerShell の本文を見直す。サインイン識別子にメールアドレスを選んでいると、ユーザー名がランダムな値になり必ず 403 になる（ユーザープールを作り直す） |
+| 403「ログインした本人の ID・メールアドレスで登録してください」 | 本文の `id`・`email` が、トークンの `cognito:username`・`email` と違う | ログインした人の ID とメールアドレスで登録する。画面では自動で入るので、PowerShell の本文を見直す。サインイン識別子にメールアドレスだけを選んでいると、ユーザー名が自動の値になり、会員 ID と合わない（ユーザー名を選んで、ユーザープールを作り直す） |
 | 403「管理者のみ利用できます」 | ログインした人が `admins` グループに入っていない | `admins` に入れる（グループ名のつづりも確かめる）。入れた後に **ログインし直す** |
 | `UsernameExistsException`（このユーザIDはすでに使われています） | 同じユーザID がすでにある（確認前のユーザーも含む） | 別のユーザID にする。確認コードの入力がまだなら、「確認コードを入力する」から確認する |
 | `CodeMismatchException`（確認コードが正しくありません） | 確認コードの入力違い | メールのコードを入れ直す。ユーザID も合っているか確かめる |
 | `ExpiredCodeException`（確認コードの有効期限が切れています） | コードの期限切れ、または古いコードを入力した | コードを送り直す（`aws cognito-idp resend-confirmation-code --region $region --client-id $clientId --username <ユーザID>`）。または Cognito の画面でそのユーザーを削除してから、もう一度サインアップする（同じユーザID でサインアップし直すと `UsernameExistsException` になるため） |
 | `InvalidPasswordException`（パスワードが条件を満たしていません） | パスワードポリシーに合わない | 8 文字以上で、大文字・小文字・数字・記号を含める |
-| `NotAuthorizedException`（ユーザIDまたはパスワードが正しくありません） | ユーザID かパスワードの間違い | 入れ直す。ユーザID の大文字・小文字も確かめる |
+| `NotAuthorizedException`（ユーザIDまたはパスワードが正しくありません） | ユーザID かパスワードの間違い | 入れ直す。パスワードは大文字・小文字を区別します |
 | `UserNotConfirmedException`（メールアドレスの確認が済んでいません） | 確認コードの入力がまだ | 確認コードを入力する（5-A の 6-4、画面では「確認コードを入力する」） |
 | `NEW_PASSWORD_REQUIRED`（画面に「追加の認証（NEW_PASSWORD_REQUIRED）が必要ですが、この画面では対応していません。」、CLI では `ChallengeName` が返る） | Cognito の画面の **ユーザーを作成** で作ったため、パスワードが仮のまま | そのユーザーを削除して、サインアップで作り直す（5-B の 1-1）。AWS のアクセスキーを設定済みなら、`aws cognito-idp admin-set-user-password --region ap-northeast-1 --user-pool-id <ユーザープールID> --username <ユーザID> --password '<新しいパスワード>' --permanent` で、パスワードを確定させてもよい |
 | `InvalidParameterException`（USER_PASSWORD_AUTH flow not enabled for this client など） | アプリクライアントで `ALLOW_USER_PASSWORD_AUTH` が有効になっていない | 5-A の 2 の認証フローで `ALLOW_USER_PASSWORD_AUTH` にチェックを入れて保存する |
@@ -603,12 +612,14 @@ Lambda の画面の **テスト** タブでも、本人確認と管理者確認�
 
 Cognito のユーザープールは、少人数・少回数の利用なら無料の範囲に収まることが多いですが、会員の個人情報（メールアドレス）を持っているので、使い終わったら削除してください。
 
+**削除するのは、すべての Session（Session6・7 で会員向けサイトを使う場合も含む）が終わってから** です。ユーザープールを先に削除すると、ログインできなくなり、会員登録（`POST /`）が 401 で失敗します。Session3・4 の片付けと同じ時期に、まとめて行ってください。
+
 次の順番で行います。
 
 1. **オーソライザーを外す**: API Gateway の `users-api-<名前>`・`users-admin-api-<名前>` で、各ルートからオーソライザーを外し、オーソライザーを削除する
    - すぐに Session3・Session4 の片付けで **API ごと削除する場合は、この手順は省略できます**（オーソライザーは API と一緒に消えます）
    - API を残す場合、オーソライザーを外すと、その API はまたログインなしで呼べる状態に戻ります。外したら、早めに API を削除してください
-2. **ユーザープールを削除する**: Cognito → `users-pool-<名前>` を選び、**削除** する。ユーザー・グループ（`admins`）・アプリクライアントも一緒に消えます
+2. **ユーザープールを削除する**（すべての Session が終わってから）: Cognito → `users-pool-<名前>`（名前が違う場合は、控えたユーザープール ID で探す）を選び、**削除** する。ユーザー・グループ（`admins`）・アプリクライアントも一緒に消えます
    - 削除保護（Deletion protection）が有効で削除できないときは、ユーザープールの設定で削除保護を無効にしてから削除する
    - ドメインがあるため削除できないと表示されたときは、先にドメインを削除する
 3. 管理 API・管理画面・Lambda は [Session4 の片付け](../Session4/README.md)、会員 API・会員向けサイト・Lambda・DynamoDB は [Session3 の片付け](../Session3/README.md) の手順で削除する（Session3・4 の案内どおり、すべての Session が終わってから）
