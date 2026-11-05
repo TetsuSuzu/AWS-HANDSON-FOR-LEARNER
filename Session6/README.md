@@ -116,7 +116,7 @@ Session5 とは別に、検索用の HTTP API を作ります。Session5 の API
    | パス | `/`（何も入力しない） |
 
 4. **次へ** → **作成**。ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にする
-5. **CORS** で、許可されたオリジンに `*` を指定する（ハンズオン用の設定）。メソッドは `POST`、`OPTIONS`、ヘッダーは `content-type`
+5. **CORS** で、許可されたオリジンに `*` を指定する（ハンズオン用の設定。本来は、Amplify の URL のようなドメインを指定する。[Session3 の 3-7](../Session3/README.md) を参照）。メソッドは `POST`、`OPTIONS`、ヘッダーは `content-type`
 6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える（末尾に `/` は付けない）
 7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードし、Amplify で **更新をデプロイ** する
 
