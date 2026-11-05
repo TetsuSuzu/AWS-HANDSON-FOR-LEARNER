@@ -1,0 +1,27 @@
+{
+  "version": "2.0",
+  "routeKey": "POST /",
+  "rawPath": "/",
+  "rawQueryString": "",
+  "headers": {
+    "content-type": "application/json",
+    "authorization": "Bearer <ID トークン>"
+  },
+  "requestContext": {
+    "http": {
+      "method": "POST",
+      "path": "/"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "cognito:username": "sample-0001",
+          "email": "sample@example.com"
+        },
+        "scopes": null
+      }
+    }
+  },
+  "body": "{\"id\": \"sample-0001\", \"name\": \"山田 太郎\", \"email\": \"sample@example.com\", \"age\": 30, \"address\": \"東京都千代田区1-1-1\", \"tel\": \"09012345678\"}",
+  "isBase64Encoded": false
+}
