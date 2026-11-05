@@ -68,21 +68,29 @@ Lambda のコードを PowerShell で zip にしてアップロードする場�
 
 ハンドラーは「どの関数から始めるか」を指定する項目です。コンソールでコードを書く方法では、`lambda_function.py` の `handler` 関数から始まるように設定します。PowerShell で zip をアップロードした場合は、2-3 の別の方法で設定した `app.handler` のままにしてください。
 
+コンソールで関数を「一から作成」すると、ハンドラーの初期値は `lambda_function.lambda_handler` になっています。ところが `app.py` の関数名は `lambda_handler` ではなく `handler` です。このままでは Lambda が関数を見つけられず、実行時に `Runtime.HandlerNotFound` のエラーになります。次の手順で `lambda_function.handler` に書き換えてください。
+
 1. **コード** タブの下の **ランタイム設定** → **編集**
-2. **ハンドラー** を次のように書き換える
+2. **ハンドラー** が初期値の `lambda_function.lambda_handler` になっていることを確認する
+3. **ハンドラー** を次のように書き換える（`lambda_` を消して `handler` だけにする）
+
+   | タイミング | ハンドラー |
+   |---|---|
+   | 初期値（書き換え前） | `lambda_function.lambda_handler` |
+   | 書き換え後 | `lambda_function.handler` |
 
    ```
    lambda_function.handler
    ```
 
-3. **保存**
+4. **保存**
 
-> `lambda_function.handler` は「ファイル名 `lambda_function.py` の関数 `handler`」という意味です。
+> `lambda_function.handler` は「ファイル名 `lambda_function.py` の関数 `handler`」という意味です。詳しくは [README の「Lambda のハンドラとは？」](README.md#補足lambda-のハンドラとは) を見てください。
 
 ### 確認ポイント
 
 - [ ] **コード** タブに `lambda_function.py` が表示されている
-- [ ] **ランタイム設定** のハンドラーが、コンソールでコードを書く場合は `lambda_function.handler`、zip をアップロードした場合は `app.handler`
+- [ ] **ランタイム設定** のハンドラーが、コンソールでコードを書く場合は `lambda_function.handler`（初期値の `lambda_function.lambda_handler` のままではない）、zip をアップロードした場合は `app.handler`
 - [ ] ランタイムが Python 3.12
 
 ## 2-5. 環境変数を設定する
