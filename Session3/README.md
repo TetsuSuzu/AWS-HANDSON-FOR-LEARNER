@@ -94,6 +94,8 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 3. 末尾に `/` は付けない
 
 > この URL が、呼び出す側（Web の画面、Android アプリなど）に設定する値です。
+>
+> ルート `POST /` を呼ぶときは、`.../dev/` のように、URL の末尾に `/` を付けて送ります。この教材のコマンドと `app.js` は、`/` を付けて送る書き方にしてあります（控える URL 自体には `/` を付けません）。
 
 ### 確認ポイント
 
@@ -172,10 +174,12 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 3. API に送る
 
    ```powershell
-   Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+   Invoke-RestMethod -Method Post -Uri "$api/" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
    ```
 
 > `$api` と `$body` は、同じ PowerShell の画面で続けて使います。画面を閉じたときは、1 と 2 をもう一度実行してください。
+>
+> **`"$api/"` の末尾の `/` は必要です。** ルート `POST /` は、ステージ名の後ろの `/` に当たります。`.../dev` だけで送ると `{"message":"Not Found"}` になります。
 
 - 結果に `message` と `user` が出れば成功です。
 
@@ -188,10 +192,10 @@ CORS を許可するかどうかを決めるのはブラウザーですが、ブ
 $origin = "https://dev.<アプリID>.amplifyapp.com"
 
 # ① プリフライト: ブラウザーが POST の前に自動で送る OPTIONS を再現する
-curl.exe -s -i -X OPTIONS $api -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+curl.exe -s -i -X OPTIONS "$api/" -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 
 # ② 許可していないオリジンでも試す(許可ヘッダーが返らないのが正しい)
-curl.exe -s -i -X OPTIONS $api -H "Origin: http://example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+curl.exe -s -i -X OPTIONS "$api/" -H "Origin: http://example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 ```
 
 ①の応答で、次を確かめます。
@@ -238,7 +242,10 @@ cd <このリポジトリ>\Session3
 - [ ] 許可していないオリジンでは `access-control-allow-origin` が出ない
 
 > **うまくいかないとき**
-> - 404 Not Found: URL の末尾に `/v1/users` などを付けていないか確認（URL はそのまま使います）
+> - `{"message":"Not Found"}`（404）: API Gateway がルートを見つけられていません。次を順に確認してください。
+>   1. URL の末尾に `/` を付けて送っているか（`.../dev/`）。付けないと、ルート `POST /` に届きません
+>   2. ルートの一覧に `POST /` があるか（3-3）。`/v1/users` など別のパスで作っていないか
+>   3. ステージ名が URL と合っているか（`dev`）
 > - 500 エラー: Lambda の CloudWatch Logs を確認（2-7 の権限やテーブル名を見直す）
 > - 日本語が文字化けして見える: PowerShell の表示の問題のことが多いです。データの中身は、Lambda の一覧で確かめてください。
 >
