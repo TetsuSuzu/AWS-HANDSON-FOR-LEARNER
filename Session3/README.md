@@ -33,11 +33,34 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 |---|---|---|
 | POST | `/`（パスなし） | 会員を登録する |
 
-### 作り方
+### 作り方（API の作成中、3-2 の続き）
 
-1. ルートの画面で **ルートを追加** をクリック
-2. メソッドに **POST** を選び、パスは `/`（何も入力しない）のまま、統合先に `users-function-<名前>` を選ぶ
+3-2 で Lambda を統合に選ぶと、**ルートを設定する画面** で、初期のルートが 1 つ自動で入っています（例: `ANY /users-function-<名前>`）。このままだと、会員登録のルートにならないので、次のとおり書き換えます。
+
+1. 一覧にある初期のルートを、次の値に書き換える
+
+   | 項目 | 入力する値 |
+   |---|---|
+   | メソッド | **POST**（`ANY` から変更する） |
+   | リソースパス | **`/`**（`/users-function-<名前>` を消して、スラッシュ 1 文字だけにする） |
+   | 統合ターゲット | `users-function-<名前>` |
+
+2. 初期のルートのほかに行があれば、**削除** して、`POST /` の 1 行だけにする
 3. **次へ**
+
+> **ポイント**: パスの `/` は「パスなし」の意味です。`/users` や `/v1/users` のように、パスを足さないでください。パスを足すと、API の URL にもそのパスを付けないと呼べません。この教材の Lambda は `POST /` を会員登録として受け付けます。
+
+### すでに API を作ってしまった場合（ルートを直す）
+
+1. **API Gateway** → `users-api-<名前>` → 左のメニューの **ルート** を開く
+2. 一覧に `POST /` がなければ、**作成** をクリックし、メソッド **POST**、パス `/` で作成する
+3. 作成した `POST /` を選び、**統合をアタッチ** で `users-function-<名前>` を選んで **アタッチ**
+4. 不要なルート（`ANY /users-function-<名前>` など）は、選んで **削除** する
+
+### 確認ポイント
+
+- [ ] ルートの一覧に `POST /` があり、`users-function-<名前>` につながっている
+- [ ] 余分なルート（`ANY /...` など）が残っていない
 
 > 一覧の取得・照会・更新・削除の API は、このセッションでは作りません（Session4 で管理者用に作ります）。
 
@@ -169,6 +192,30 @@ curl.exe -s -i -X OPTIONS $api -H "Origin: http://example.com" -H "Access-Contro
 ②の応答には `access-control-allow-origin` が出ません。出ていたら、許可するオリジンを広げすぎています。
 
 > `curl.exe` は CORS を強制しません。ヘッダーがなくてもリクエスト自体は成功するので、成功したかどうかではなく、ヘッダーの有無を読んでください。
+
+### curl.exe で API をまとめてテストする
+
+上の確認を、1 つのスクリプトで一度に行えます。[curl-test.ps1](curl-test.ps1) は、`curl.exe` で次の 6 つを順に確かめ、結果を `[OK]` と `[NG]` で表示します。
+
+| 番号 | テスト | 期待する結果 |
+|---|---|---|
+| 1 | プリフライト（許可したオリジン） | 204 または 200。`allow-origin` が Origin と同じ。`allow-methods` に `POST`、`allow-headers` に `content-type` |
+| 2 | プリフライト（許可していないオリジン） | `access-control-allow-origin` が出ない |
+| 3 | 会員登録（正常） | 201。**実際の応答にも** `access-control-allow-origin` が付く |
+| 4 | 同じ ID をもう一度登録 | 409 |
+| 5 | 必須項目が足りない | 400 |
+| 6 | JSON の形式が壊れている | 400 |
+
+```powershell
+cd <このリポジトリ>\Session3
+.\curl-test.ps1 -Api "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev" -Origin "https://dev.<アプリID>.amplifyapp.com"
+```
+
+- `-Api` は 3-5 で控えた URL（ステージ名の `/dev` まで）、`-Origin` は 3-7 で CORS に登録したオリジンです。
+- スクリプトを実行できない場合は、`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` を実行してからもう一度試します（今開いている PowerShell だけに効きます）。
+- テスト 3 で、DynamoDB に会員を 1 件登録します（ID は `curl-<日時>`）。不要になったら、Session4 の管理画面か DynamoDB の画面で削除してください。
+
+テスト 1・2 が失敗するときは、3-7 の CORS の設定（オリジンの綴り、`POST`・`OPTIONS`、`content-type`）を見直してください。テスト 3 が 404 のときは 3-3 のルート（`POST /`）を、500 のときは Lambda の権限（2-6）を確認します。
 
 ### 確認ポイント
 
