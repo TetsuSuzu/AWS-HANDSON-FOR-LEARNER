@@ -98,7 +98,7 @@ Git を使わずに入手する方法です。更新を取り込むときは、�
 入手したフォルダの中に、次のフォルダとファイルがあるか確認してください。
 
 - [ ] `Session1` フォルダ（`index.html`、`app.js`、`styles.css`、`photo1.png`、`photo2.png` を含む）
-- [ ] `Session2` フォルダ（`app.py` を含む）
+- [ ] `Session2` フォルダ（`lambda_function.py` を含む）
 - [ ] `Session3` フォルダ（`README.md` を含む）
 - [ ] `Session4` フォルダ（`lambda_function.py` を含む）
 - [ ] `Session5` フォルダ（`lambda_function.py`、`schema.sql` を含む）

@@ -98,7 +98,7 @@ gh project item-add 4 \
 | Session | 主なファイル |
 |---|---|
 | Session1 | `index.html`、`app.js`、`styles.css`、画像、`config.js`、S3 と Amplify の手順 |
-| Session2 | DynamoDB/Lambda 手順、`app.py`、Lambda テストイベント |
+| Session2 | DynamoDB/Lambda 手順、`lambda_function.py`、Lambda テストイベント |
 | Session3 | HTTP API、ステージ、CORS、サイト接続手順 |
 | Session4 | 会員管理画面（`admin.html`、`admin.js`。別バケットと別の Amplify アプリに置く）、管理 API の Lambda、テストイベント |
 

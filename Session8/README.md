@@ -1,6 +1,6 @@
 # Session8 — Aurora と Lambda（Python）で会員 API を作る
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session8_` で始まるファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/c751ca01aa96917d42e2763eefc96ffb) にあります。使うファイルを開き、中身をコピーして使えます。
 
 [Session2](../Session2/README.md) の DynamoDB 版と同じ会員 API を、**Amazon Aurora（PostgreSQL 互換）** で作ります。Session4 まで（会員登録・管理画面が DynamoDB）を終えてから行ってください。API の形は同じなので、Session3・4 の画面は API の URL を差し替えるだけで使えます。
 
@@ -142,7 +142,7 @@ Aurora PostgreSQL（users-aurora-<名前>）
 3. **関数の作成** をクリック
 4. **コード** タブで `lambda_function.py` を開き、初期コードをすべて削除して、Session8 フォルダの `lambda_function.py` の内容を貼り付ける
 5. **Deploy（デプロイ）** をクリック
-6. **ランタイム設定** → **編集** で、**ハンドラー** を `lambda_function.handler` にして **保存**
+6. **ランタイム設定** で、**ハンドラー** が初期値の `lambda_function.lambda_handler` のままであることを確認する
 
 > **boto3 について**: Lambda の Python 実行環境には `boto3` が最初から入っています。ライブラリを追加する必要はありません。`rds-data`（Data API の道具）は、この `boto3` に含まれています。
 
@@ -161,7 +161,7 @@ Aurora PostgreSQL（users-aurora-<名前>）
 ### 確認ポイント
 
 - [ ] **コード** タブに `lambda_function.py` が表示され、Deploy 済み
-- [ ] ハンドラーが `lambda_function.handler`
+- [ ] ハンドラーが `lambda_function.lambda_handler`
 - [ ] 環境変数が 3 つ（`CLUSTER_ARN`、`SECRET_ARN`、`DB_NAME`）設定されている
 
 ---
