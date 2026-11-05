@@ -28,7 +28,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 > **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
 
-## コードの読み方（lambda_function.py・初心者向け）
+## コードの読み方（lambda_function.py）
 
 `lambda_function.py` は、料理の希望を受け取り、Amazon Bedrock（生成 AI）に質問して、おすすめの答えを返す Python のプログラムです。
 

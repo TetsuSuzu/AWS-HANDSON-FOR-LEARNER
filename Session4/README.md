@@ -37,7 +37,7 @@ DynamoDB（users-table-<名前>）… Session2 で作ったテーブルを使う
 > - 研修が終わったら、**必ず** 「片付け」の手順で API と管理画面用のバケットを削除してください。
 > - 実際のサービスでは、ログイン（Amazon Cognito など）で管理者を確認してから、この種の API を公開します。
 
-## コードの読み方（lambda_function.py・初心者向け）
+## コードの読み方（lambda_function.py）
 
 `lambda_function.py` は、管理画面からの要求を受け取り、DynamoDB の会員データを一覧・取得・更新・削除する Python のプログラムです。Session2 の `app.py` と似ていますが、「登録」がありません。
 

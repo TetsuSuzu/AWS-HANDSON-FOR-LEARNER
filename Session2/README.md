@@ -33,7 +33,7 @@ Lambda（users-function-<名前>）
 | `test-events/create-user.json` | 会員登録 Lambda テスト用イベント |
 | `test-events/list-users.json` | 会員一覧 Lambda テスト用イベント |
 
-## コードの読み方（app.py・初心者向け）
+## コードの読み方（app.py）
 
 `app.py` は、API から呼ばれて会員データを DynamoDB に保存・取得・削除する Python のプログラムです。全体は次の順番で動きます。
 
