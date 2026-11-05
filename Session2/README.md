@@ -10,6 +10,9 @@
 Lambda（users-function-<名前>）
    │
    └── DynamoDB（users-table-<名前>）
+          ┊ （任意・手順 3）ストリーム（INSERT だけ）
+          ┊
+          └┄┄ Lambda（users-notify-function-<名前>） ┄┄▶ SES ┄┄▶ 登録完了メール
 ```
 
 ## 事前準備
@@ -21,7 +24,8 @@ Lambda（users-function-<名前>）
 
 1. [DynamoDB テーブルを作成する](01-dynamodb.md)
 2. [Lambda 関数を作成し、コードを設定してテストする](02-lambda.md)
-3. Session3 の [HTTP API を作成して接続する](../Session3/README.md) に進む
+3. （任意）[会員登録のあとにメールを送る（DynamoDB ストリーム + SES）](03-notify-email.md)
+4. Session3 の [HTTP API を作成して接続する](../Session3/README.md) に進む
 
 ## このフォルダのファイル
 
@@ -29,9 +33,13 @@ Lambda（users-function-<名前>）
 |---|---|
 | `01-dynamodb.md` | DynamoDB テーブル作成手順 |
 | `02-lambda.md` | Lambda の作成、権限設定、テスト手順 |
+| `03-notify-email.md` | （任意）登録完了メールの手順（DynamoDB ストリーム + SES） |
 | `lambda_function.py` | Lambda 関数のコード。コンソールに貼り付けて使用 |
 | `test-events/create-user.json` | 会員登録 Lambda テスト用イベント |
 | `test-events/list-users.json` | 会員一覧 Lambda テスト用イベント |
+| `notify_function.py` | （任意）登録完了メールを送る Lambda のコード。手順 3 で使用 |
+| `test_notify_function.py` | `notify_function.py` の単体テスト（AWS には接続しない） |
+| `test-events/stream-insert.json` | 通知用 Lambda テスト用イベント（DynamoDB ストリームの INSERT の例） |
 
 ## コードの読み方（lambda_function.py）
 
@@ -106,6 +114,7 @@ Lambda（users-function-<名前>）
 |---|---|
 | DynamoDB テーブル | `users-table-<名前>` |
 | Lambda 関数 | `users-function-<名前>` |
+| 通知用 Lambda 関数（任意） | `users-notify-function-<名前>` |
 | Lambda 実行ロール | 関数作成時に生成されたロール |
 
 

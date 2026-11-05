@@ -154,3 +154,5 @@ API を作る前に、Lambda が正しく動くかを確かめます。
 ## 次へ
 
 [../Session3/README.md](../Session3/README.md) に進んでください。
+
+（任意）会員登録のあとに登録完了メールを送る仕組みを試す場合は、[03-notify-email.md](03-notify-email.md) を見てください。
