@@ -1,5 +1,7 @@
 # Session5 — Amazon Bedrock で旅行先の料理をおすすめする
 
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session5_` で始まるファイルを開き、中身をコピーして使えます。
+
 利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
 
 ## 構成
