@@ -38,7 +38,7 @@ Lambda（users-function-<名前>）
 | `test-events/create-user.json` | 会員登録 Lambda テスト用イベント |
 | `test-events/list-users.json` | 会員一覧 Lambda テスト用イベント |
 | `notify_function.py` | （任意）登録完了メールを送る Lambda のコード。手順 3 で使用 |
-| `test_notify_function.py` | `notify_function.py` の単体テスト（AWS には接続しない） |
+| `test_notify_function.py` | `notify_function.py` の単体テスト（AWS には接続しない。ローカルに `boto3`/`botocore` のインストールが必要） |
 | `test-events/stream-insert.json` | 通知用 Lambda テスト用イベント（DynamoDB ストリームの INSERT の例） |
 
 ## コードの読み方（lambda_function.py）

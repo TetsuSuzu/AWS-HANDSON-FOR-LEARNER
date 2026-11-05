@@ -1,7 +1,7 @@
 """会員登録完了メール送信（DynamoDB ストリームから呼ばれる Lambda）
 
 会員テーブルに新しい会員が登録（INSERT）されると、DynamoDB ストリームがこの関数を呼び出します。
-関数は登録された会員のメールアドレス宛てに、Amazon SES で御礼メールを送ります。
+関数は登録された会員のメールアドレス宛てに、Amazon SES で登録完了メールを送ります。
 
 環境変数
   SENDER      送信元メールアドレス（SES で検証済みのもの）。MAIL_MODE が ses のとき必須
@@ -23,11 +23,16 @@ DEFAULT_REGION = "ap-northeast-1"
 
 SUBJECT = "【View AWS勉強会サイト】会員登録が完了しました"
 
+_ses = None
+
 
 def get_ses_client():
-    # 呼ばれたときに作成する（import しただけでは AWS に接続しない）
-    region = os.environ.get("SES_REGION", DEFAULT_REGION)
-    return boto3.client("ses", region_name=region)
+    # 初回のみ作成し、同じ実行環境の次の呼び出しでは使い回す（import しただけでは AWS に接続しない）
+    global _ses
+    if _ses is None:
+        region = os.environ.get("SES_REGION", DEFAULT_REGION)
+        _ses = boto3.client("ses", region_name=region)
+    return _ses
 
 
 def read_config():
@@ -61,7 +66,7 @@ def build_message(name):
 
 
 def send_mail(email, subject, body, sender):
-    """SES でメールを送り、MessageId を返す。失敗したときはエラーコードだけ記録して再送出する。"""
+    """SES でメールを送り、MessageId を返す。失敗したときはエラーコードだけを記録し、宛先を含まない例外を投げ直す。"""
     try:
         response = get_ses_client().send_email(
             Source=sender,
@@ -72,9 +77,13 @@ def send_mail(email, subject, body, sender):
             },
         )
     except ClientError as e:
-        # 個人情報を残さないため、メールアドレスはログに出さない
-        logger.error("SES の送信に失敗しました code=%s", e.response["Error"]["Code"])
-        raise  # 再送出して、Lambda の再試行設定に任せる
+        # SES のエラーメッセージには宛先のメールアドレスが含まれることがある。
+        # そのまま再送出すると Lambda が CloudWatch Logs に書き出してしまうため、
+        # エラーコードだけを持つ新しい例外に置き換える（from None で元の例外は隠す）。
+        # 例外を投げれば Lambda の再試行設定は従来どおり働く。
+        code = e.response["Error"]["Code"]
+        logger.error("SES の送信に失敗しました code=%s", code)
+        raise RuntimeError(f"SES の送信に失敗しました code={code}") from None
     return response["MessageId"]
 
 

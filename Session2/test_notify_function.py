@@ -6,6 +6,7 @@
 
 import importlib.util
 import os
+import traceback
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -54,6 +55,8 @@ class NotifyFunctionTest(unittest.TestCase):
         env.start()
         self.addCleanup(env.stop)
         os.environ.pop("MAIL_MODE", None)
+        nf._ses = None  # 前のテストで作ったクライアントを持ち越さない
+        self.addCleanup(setattr, nf, "_ses", None)
         self.ses = MagicMock()
         self.ses.send_email.return_value = {"MessageId": "msg-123"}
         p = patch.object(nf, "get_ses_client", return_value=self.ses)
@@ -91,14 +94,14 @@ class NotifyFunctionTest(unittest.TestCase):
     def test_missing_email_is_skipped(self):
         with self.assertLogs(level="WARNING") as cm:
             result = nf.lambda_handler(make_event(make_record(email=None)), None)
-        self.assertNotIn("@", chr(10).join(cm.output))
+        self.assertNotIn("@", "\n".join(cm.output))
         self.ses.send_email.assert_not_called()
         self.assertEqual(result, {"sent": 0, "skipped": 1})
 
     def test_empty_email_is_skipped(self):
         with self.assertLogs(level="WARNING") as cm:
             result = nf.lambda_handler(make_event(make_record(email="")), None)
-        self.assertNotIn("@", chr(10).join(cm.output))
+        self.assertNotIn("@", "\n".join(cm.output))
         self.ses.send_email.assert_not_called()
         self.assertEqual(result, {"sent": 0, "skipped": 1})
 
@@ -116,7 +119,8 @@ class NotifyFunctionTest(unittest.TestCase):
         env["MAIL_MODE"] = "log"
         with patch.dict(os.environ, env, clear=True):
             with self.assertLogs(level="INFO"):
-                nf.lambda_handler(make_event(make_record()), None)
+                result = nf.lambda_handler(make_event(make_record()), None)
+        self.assertEqual(result, {"sent": 1, "skipped": 0})
 
     def test_invalid_mail_mode_raises(self):
         with patch.dict(os.environ, {"MAIL_MODE": "bogus"}):
@@ -131,16 +135,35 @@ class NotifyFunctionTest(unittest.TestCase):
                 nf.lambda_handler(make_event(make_record()), None)
         self.ses.send_email.assert_not_called()
 
-    def test_ses_client_error_is_reraised(self):
+    def _assert_error_hides_email(self, code, message):
         self.ses.send_email.side_effect = ClientError(
-            {"Error": {"Code": "MessageRejected", "Message": "rejected"}}, "SendEmail"
+            {"Error": {"Code": code, "Message": message}}, "SendEmail"
         )
         with self.assertLogs(level="ERROR") as cm:
-            with self.assertRaises(ClientError):
+            with self.assertRaises(Exception) as ctx:
                 nf.lambda_handler(make_event(make_record()), None)
-        joined = "\n".join(cm.output)
-        self.assertIn("MessageRejected", joined)
-        self.assertNotIn(EMAIL, joined)
+        exc = ctx.exception
+        trace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+        logs = "\n".join(cm.output)
+        self.assertNotIn(EMAIL, str(exc))
+        self.assertNotIn(EMAIL, trace)
+        self.assertNotIn(EMAIL, logs)
+        self.assertIn(code, str(exc))
+        self.assertIn(code, logs)
+
+    def test_ses_client_error_is_reraised(self):
+        self._assert_error_hides_email(
+            "MessageRejected",
+            "Email address is not verified. The following identities failed the check "
+            f"in region AP-NORTHEAST-1: {EMAIL}",
+        )
+
+    def test_ses_access_denied_does_not_leak_email(self):
+        self._assert_error_hides_email(
+            "AccessDenied",
+            "User is not authorized to perform: ses:SendEmail on resource: "
+            f"arn:aws:ses:ap-northeast-1:123456789012:identity/{EMAIL}",
+        )
 
     def test_multiple_records(self):
         event = make_event(
