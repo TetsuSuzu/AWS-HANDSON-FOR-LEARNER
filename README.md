@@ -38,7 +38,7 @@ AWS-HANDSON-FOR-LEARNER/
 │   ├── README.md              セッション案内
 │   ├── 01-dynamodb.md         DynamoDB の作成手順
 │   ├── 02-lambda.md           Lambda の作成・設定・テスト手順
-│   ├── app.py                 会員 API の Lambda コード
+│   ├── lambda_function.py     会員 API の Lambda コード
 │   └── test-events/           Lambda のテストイベント
 │       ├── create-user.json
 │       └── list-users.json

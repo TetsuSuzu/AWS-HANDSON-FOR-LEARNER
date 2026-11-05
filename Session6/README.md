@@ -1,6 +1,6 @@
 # Session6 — 店リストを tool_use で読んで、回答の精度を比べる
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session6_` で始まるファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/9934842d53e2f6ca3c9932439a494b35) にあります。使うファイルを開き、中身をコピーして使えます。
 
 Session5 では、AI に何も調べさせずに料理のおすすめを答えてもらいました。Session6 では、作成者のマップ「ランチマップ」から作った **店リスト**（`shops.txt`）を、AI がツール（tool_use）で読んで答えます。同じ質問を Session5（ツールなし）と比べ、精度が上がるかを確かめます。
 

@@ -1,7 +1,7 @@
 """会員API（Aurora PostgreSQL 版）
 
 API Gateway HTTP API（ペイロード形式 2.0）から呼ばれ、routeKey で処理を振り分けます。
-Session2 の DynamoDB 版（app.py）と同じ API の形で、保存先だけを Aurora に替えています。
+Session2 の DynamoDB 版（lambda_function.py）と同じ API の形で、保存先だけを Aurora に替えています。
 SQL は RDS Data API（HTTPS）で実行するため、Lambda を VPC に入れる必要はありません。
 """
 
@@ -226,7 +226,7 @@ ROUTES = {
 }
 
 
-def handler(event, context):
+def lambda_handler(event, context):
     route = event.get("routeKey", "")
     params = event.get("pathParameters") or {}
     try:

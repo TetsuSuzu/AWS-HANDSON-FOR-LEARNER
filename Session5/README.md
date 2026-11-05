@@ -1,6 +1,6 @@
 # Session5 — Amazon Bedrock で旅行先の料理をおすすめする
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session5_` で始まるファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/db058114db872972033f5bef4b347108) にあります。使うファイルを開き、中身をコピーして使えます。
 
 利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
 
@@ -28,7 +28,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 > **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
 
-## コードの読み方（lambda_function.py・初心者向け）
+## コードの読み方（lambda_function.py）
 
 `lambda_function.py` は、料理の希望を受け取り、Amazon Bedrock（生成 AI）に質問して、おすすめの答えを返す Python のプログラムです。
 
