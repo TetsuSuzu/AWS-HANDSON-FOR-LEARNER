@@ -157,11 +157,25 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 
 ### 会員を登録する（POST）
 
-```powershell
-$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
-$body = '{"id":"u-0001","name":"山田太郎","email":"taro@example.com","age":30,"address":"東京都千代田区1-1","tel":"09012345678"}'
-Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
-```
+1. API の URL を変数に入れる（`xxxxxxxxxx` は 3-5 で控えた URL に置き換える）
+
+   ```powershell
+   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
+   ```
+
+2. 登録する会員のデータ（本文）を変数に入れる
+
+   ```powershell
+   $body = '{"id":"u-0002","name":"鈴木愛子","email":"aiko@example.com","age":30,"address":"東京都千代田区1-1","tel":"09012345678"}'
+   ```
+
+3. API に送る
+
+   ```powershell
+   Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+   ```
+
+> `$api` と `$body` は、同じ PowerShell の画面で続けて使います。画面を閉じたときは、1 と 2 をもう一度実行してください。
 
 - 結果に `message` と `user` が出れば成功です。
 
