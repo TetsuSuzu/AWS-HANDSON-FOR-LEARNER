@@ -47,7 +47,7 @@ document.getElementById("recommendationButton").addEventListener("click", async 
         return;
     }
     if (!endpoint) {
-        status.textContent = "料理のおすすめの API URL は Session6 で設定します。";
+        status.textContent = "料理のおすすめの API URL は Session7 で設定します。";
         return;
     }
 

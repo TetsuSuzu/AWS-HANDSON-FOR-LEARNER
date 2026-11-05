@@ -1,187 +1,215 @@
-# Session6 — 店リストを tool_use で読んで、回答の精度を比べる
+# Session6 — Amazon Bedrock で旅行先の料理をおすすめする
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/9934842d53e2f6ca3c9932439a494b35) にあります。使うファイルを開き、中身をコピーして使えます。
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/db058114db872972033f5bef4b347108) にあります。使うファイルを開き、中身をコピーして使えます。
 
-Session5 では、AI に何も調べさせずに料理のおすすめを答えてもらいました。Session6 では、作成者のマップ「ランチマップ」から作った **店リスト**（`shops.txt`）を、AI がツール（tool_use）で読んで答えます。同じ質問を Session5（ツールなし）と比べ、精度が上がるかを確かめます。
-
-例の質問は「**東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください**」です。
+利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
 
 ## 構成
 
 ```text
-Session1 のサイト（料理のおすすめ欄）
-   │ 料理のおすすめ（Session6・ツールあり）＝ travel-search-api-<名前> の URL
+Session1 のブラウザー
+   │ POST（API の URL そのもの。パスなし）
    ▼
-API Gateway HTTP API（travel-search-api-<名前>。URL そのものが入口で、パスは付けない）
+API Gateway HTTP API（ap-northeast-1）
    │
    ▼
-Lambda（travel-search-function-<名前>）
+Lambda（Bedrock 呼び出し）
    │
-   ├── Amazon Bedrock（Claude Sonnet 4.6）… 店リストを読むかを判断する
-   │        ▲ 店リストを受け取り、その中から回答を書く
-   │
-   └── shops.txt（ランチマップから作った店リスト。Lambda と同じフォルダに置く）
+   ▼
+Amazon Bedrock Runtime（Claude Sonnet 4.6）
 ```
-
-外部の検索サービスは使いません。キーも不要です。
-
-## tool_use とは
-
-**tool_use** は、AI が「自分では分からないことを、道具（ツール）で調べる」仕組みです。
-
-1. 私たちは、AI に「`get_map_shops` という店リストを読むツールを使ってよい」と伝える
-2. AI は質問を読み、「店リストを見よう」と判断して、ツールの使用を依頼する
-3. Lambda がツールを実行し、店リストを AI に返す
-4. AI は店リストの中から、質問に合う店を選んで回答を書く
-
-AI は、店リストを「読んだ上で」答えるため、推測だけで答えるより、実在する店を挙げやすくなると期待できます。ただし、リストに無い店を作ってしまうこともあります。そのため、この Session では **最後に自分で確かめます**。
 
 ## 事前準備
 
-- [Session1](../Session1/README.md)〜[Session5](../Session5/README.md) を完了している（Session4 の管理画面は、この Session の動作には必須ではありません）
-- Session5 の Lambda 実行ロール（Bedrock の権限を付けたもの）の名前を控える
-- `Session6` フォルダの `lambda_function.py` と `shops.txt` を用意する
+- [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
+- Session1 の Amplify の URL を控えておく（ブラウザーでの動作確認に使う）
+- AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
+- Session6 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
 
-> **店リストについて**: `shops.txt` は、作成者の Google マイマップ「ランチマップ」の店を一覧にしたものです。カテゴリ、店名、ひとことメモが入っています。住所や営業時間は入っていません。
+> **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
+
+## コードの読み方（lambda_function.py）
+
+`lambda_function.py` は、料理の希望を受け取り、Amazon Bedrock（生成 AI）に質問して、おすすめの答えを返す Python のプログラムです。
+
+### 用語の説明
+
+| 用語 | 意味 |
+|---|---|
+| `import` | ほかのプログラムの道具を借りる命令です。`json`（JSON を扱う）、`logging`（ログを残す）、`boto3`（AWS を操作する道具箱）を読み込んでいます |
+| `boto3` | Python から AWS を操作するための道具箱です |
+| Bedrock | AWS が提供する生成 AI のサービスです。文章で質問すると、文章で答えてくれます |
+| モデル | 生成 AI の本体です。`MODEL_ID` で、どのモデルを使うかを指定します |
+| プロンプト | AI に送る質問や指示の文章です。この教材では、ユーザーが入力した希望がプロンプトになります |
+| `logger` | 実行中の記録（ログ）を残す道具です。エラーの原因を調べるときに、CloudWatch Logs で見られます |
+| `ClientError` | AWS の呼び出しで起きたエラーの種類です |
+| 関数（`def`） | 処理のまとまりに名前を付けたものです。`def respond(...)` は、結果の形を作る関数です |
+
+### 1 行ずつの説明（主な部分）
+
+- `bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")`
+  - Bedrock と通信するための接続を作ります。`region_name` は、Bedrock を使う AWS のリージョン（場所）です。
+- `MODEL_ID = os.environ["MODEL_ID"]`
+  - 使う AI モデルの名前です。値は、コードではなく Lambda の環境変数から読みます。そのため、モデルを変えるときはコードを書き換えず、環境変数の値だけを変えます。
+- `MAX_PROMPT_LENGTH = 1000`
+  - 入力できる文字数の上限です。長すぎる入力は、ここで弾きます。
+- `def lambda_handler(event, context):`
+  - Lambda が最初に呼ぶ関数です。`event` は API からの要求、`context` は Lambda の実行情報です。
+- `body = json.loads(event.get("body") or "{}")`
+  - 送られてきたデータ（JSON の文字）を、Python のデータに変換します。`or "{}"` は、データがないときは空の辞書を使うという意味です。
+- `prompt = body.get("prompt")`
+  - データの中から、`prompt` の項目（ユーザーの希望）を取り出します。
+- `if not isinstance(prompt, str) or not prompt.strip(): ...`
+  - 「文字であること」「空でないこと」を確かめます。違えば、400（入力が正しくない）を返します。
+- `request_body = {...}`
+  - AI に送るデータを作ります。
+  - `system`: AI の役割を決める指示です（「旅行と郷土料理に詳しいアドバイザー」）。
+  - `messages`: ユーザーの質問です。
+  - `max_tokens`: 返事の長さの上限です。トークンは、AI が文章を扱うときの最小の単位です。
+  - `temperature`: 返事のゆらぎを決めます。0 に近いほど決まった答えになり、高いほど多様になります。
+- `response = bedrock.invoke_model(...)`
+  - Bedrock のモデルを呼び出して、返事を待ちます。
+- `result = json.loads(response["body"].read())`
+  - 返事を読み取り、Python のデータに変換します。
+- `answer = result["content"][0]["text"]`
+  - 返事の中から、文章の部分を取り出します。`[0]` は、最初の返事という意味です。
+- `return respond(200, {"answer": answer})`
+  - 成功したときは、200 と `answer` を返します。
+- `except (ClientError, KeyError, ...):`
+  - 途中でエラーが起きたら、エラーを記録して、502（外部の処理が失敗した）を返します。
+
+### テストイベント（test-event.json）
+
+テストイベントは、API Gateway が送ってくるはずの要求を、手で作った例です。Lambda の画面で「テスト」を押すときに使います。
+
+- `routeKey`: `POST /` を指定し、このプログラムを呼び出します。
+- `body`: 希望の文章です。JSON の文字の中にもう一度 JSON が入っているため、`\"` のように書いています。
+
+---
 
 ## 1. Lambda 関数を作成する
 
-1. AWS コンソールのリージョンを **アジアパシフィック（東京） ap-northeast-1** にする
+1. AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** に切り替える
 2. **Lambda** → **関数の作成** → **一から作成** を選ぶ
 3. 次の設定で作成する
 
    | 項目 | 値 |
    |---|---|
-   | 関数名 | `travel-search-function-<名前>` |
-   | ランタイム | **Python 3.12** |
-   | アーキテクチャ | **x86_64** |
-   | 実行ロール | **既存のロールを使用する** → Session5 の Lambda 実行ロールを選ぶ |
+   | 関数名 | `travel-recommendation-<名前>` |
+   | ランタイム | Python 3.12 |
+   | アーキテクチャ | x86_64 |
+   | 実行ロール | 基本的な Lambda のアクセス権限で新しいロールを作成 |
 
-4. **関数の作成** をクリック
+4. 関数の **コード** タブで `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
+5. **Deploy（デプロイ）** をクリックする。ハンドラーは `lambda_function.lambda_handler` にする
+6. **設定** → **一般設定** → **編集** でタイムアウトを **1 分** にする
 
-### コードと店リストを配置する
+### 環境変数 MODEL_ID を設定する
 
-1. **コード** タブで `lambda_function.py` の内容を、`Session6/lambda_function.py` の内容で置き換える
-2. `Session6/shops.txt` を、Lambda のコードと同じフォルダに置く。コンソールの「アップロード元」で **.zip ファイル** を使う場合は、`lambda_function.py` と `shops.txt` を一緒に zip にします
-3. **Deploy（デプロイ）** をクリックする
-4. **ランタイム設定** → **編集** → **ハンドラー** を `lambda_function.lambda_handler` にして保存する
+このプログラムは、使う AI モデルを環境変数 `MODEL_ID` から読みます。設定しないと、Lambda は起動時にエラー（`KeyError: 'MODEL_ID'`）になります。
 
-### 環境変数を設定する
+1. Lambda の画面で **設定** タブ → **環境変数** → **編集**
+2. **環境変数を追加** をクリックし、次を入力する
 
-**設定** → **環境変数** → **編集** で、次を追加します。
+   | キー | 値 |
+   |---|---|
+   | `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
 
-| キー | 値 |
-|---|---|
-| `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
+3. **保存**
 
-> `MODEL_ID` は Session5 と同じ値です。モデルを変えるときは、コードを書き換えず、この値だけを変えます。
+> **モデルを変えたいとき**: コードは変えず、この値だけを変えて保存します。変える前に、東京リージョン（`ap-northeast-1`）の Bedrock でそのモデルが使えるかを確認してください。
 
-### タイムアウトを延ばす
+## 2. Lambda 実行ロールに Bedrock 権限を付ける
 
-AI の回答と店リストの読み込みを行うため、既定の時間では足りないことがあります。
+1. Lambda の **設定** → **アクセス権限** を開き、実行ロール名をクリックする
+2. IAM ロールで **許可を追加** → **インラインポリシーを作成** → **JSON** を選ぶ
+3. 次のポリシーを貼り付ける
 
-1. **設定** → **一般設定** → **編集**
-2. **タイムアウト** を **30 秒** にして保存する
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": "bedrock:InvokeModel",
+         "Resource": [
+           "arn:aws:bedrock:*:<アカウントID>:inference-profile/global.anthropic.claude-sonnet-4-6",
+           "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
+         ]
+       }
+     ]
+   }
+   ```
 
-### 確認ポイント
+4. ARN 中の `<アカウントID>` を自分の AWS アカウント ID に置き換え、ポリシー名を `bedrock-invoke-model-<名前>` として作成する
 
-- [ ] ランタイムが Python 3.12、ハンドラーが `lambda_function.lambda_handler`
-- [ ] 環境変数 `MODEL_ID` がある
-- [ ] `shops.txt` が `lambda_function.py` と同じフォルダにある
-- [ ] タイムアウトが 30 秒
+> このポリシーは Claude Sonnet 4.6 のグローバル推論プロファイルと、クロスリージョン先の同モデル呼び出しに限定します。推論プロファイルを使う場合は、プロファイル ARN と利用先の foundation model ARN の両方が必要です。Bedrock 側のモデル利用条件も満たしている必要があります。
 
-## 2. テストする（Lambda 単体）
+## 3. Lambda 単体でテストする
 
-1. Lambda の画面で **テスト** タブ → **新しいイベント**
-2. イベント名を `search-recommendation` にする
-3. `Session6/test-event.json` の内容を貼り付けて **保存** → **テスト**
-4. 実行結果の `body` に、`answer`（回答）と `sources`（参照したマップの名前）が入っていれば成功です。
+1. **テスト** → **新しいイベントを作成** を選択する
+2. イベント名を `recommendation-test` にし、`test-event.json` の内容を貼り付けて保存する
+3. **テスト** を実行する
+4. `statusCode` が `200` で、本文の `answer` に日本語の提案があれば成功
 
-> **エラーが出たら**: 実行結果と、**モニタリング** → **CloudWatch Logs** のログを確認します。
-> - `KeyError: 'MODEL_ID'` → 環境変数を確認する
-> - `FileNotFoundError` で `shops.txt` が見つからない → `shops.txt` が Lambda のコードと同じフォルダにあるかを確認する
-> - `AccessDeniedException` → Session5 の Bedrock 権限を確認する
+入力が不正な場合は 400、Bedrock 呼び出しで失敗した場合は 502 が返ります。失敗時は Lambda の **モニタリング** → **CloudWatch Logs** で詳細を確認してください。
 
-## 3. 検索用の HTTP API を作成する
+## 4. HTTP API を作成する
 
-Session5 とは別に、検索用の HTTP API を作ります。Session5 の API とは、URL を分けるためです。
+1. リージョンが `ap-northeast-1` のまま **API Gateway** を開く
+2. **API を作成** → **HTTP API** → **構築** を選ぶ
+3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
+4. ルートに `POST /`（パスなし）を追加し、統合先が上記 Lambda であることを確認する
+5. ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にして作成する
+6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾の `/` は付けない
 
-1. API Gateway で **API を作成** → **HTTP API** → **構築** を選ぶ
-2. **統合** で **Lambda** を選び、`travel-search-function-<名前>` を指定する。API 名は `travel-search-api-<名前>`。ペイロード形式は **2.0**
-3. **ルート** で、次を入力する
+## 5. API の CORS を設定する
+
+1. API Gateway で `travel-recommendation-api-<名前>` を開き **CORS** を選ぶ
+2. 次の値を設定する
 
    | 項目 | 値 |
    |---|---|
-   | メソッド | `POST` |
-   | パス | `/`（何も入力しない） |
+   | 許可されたオリジン | `*`（すべてのオリジンを許可。ハンズオン用の設定） |
+   | 許可されたメソッド | `POST`, `OPTIONS` |
+   | 許可されたヘッダー | `content-type` |
+   | 認証情報 | 無効 |
 
-4. **次へ** → **作成**。ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にする
-5. **CORS** で、許可されたオリジンに `*` を指定する（ハンズオン用の設定。本来は、Amplify の URL のようなドメインを指定する。[Session3 の 3-7](../Session3/README.md) を参照）。メソッドは `POST`、`OPTIONS`、ヘッダーは `content-type`
-6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える（末尾に `/` は付けない）
-7. Session1 の `config.js` に、次の行を追加して S3 に再アップロードし、Amplify で **更新をデプロイ** する
+3. 保存する。`dev` ステージの自動デプロイが有効なら設定は自動反映される
 
-   ```javascript
-   window.SEARCH_API_ENDPOINT = "<控えた URL>";
+`*` は、どのサイトからでもこの API を呼べるようにする、ハンズオン用の設定です。**本来は、API を呼ぶサイトのドメイン（例: `https://dev.<アプリID>.amplifyapp.com`）を指定します**（[Session3 の 3-7](../Session3/README.md) を参照）。`*` のときは、認証情報を有効にできません（無効のまま）。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
+
+## 6. API の URL で動作を確かめる
+
+この API の URL は、PowerShell などから直接呼び出して確かめます。Session1 のサイトのおすすめ欄は、[Session7](../Session7/README.md) の API を使います（Session7 で設定します）。
+
+1. API Gateway の `travel-recommendation-api-<名前>` のステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾に `/` は付けない
+2. PowerShell で、次のように呼び出す
+
+   ```powershell
+   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
+   $body = '{"prompt":"長野でそばを食べたい"}'
+   $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
+   (Invoke-RestMethod -Method Post -Uri "$api/" -ContentType "application/json; charset=utf-8" -Body $bytes).answer
    ```
 
+3. Bedrock からの日本語回答が表示されれば成功です
 
-## 4. 同じ質問で 2 つの回答を比べる
+> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
 
-PowerShell で、同じ質問を 2 つの API に送ります。A は Session5 の API の URL、B は手順 3 で作った検索用の API の URL を使います（末尾に `/` は付けません）。
+## 確認ポイント
 
-```powershell
-$bytes = [System.Text.Encoding]::UTF8.GetBytes('{"prompt":"東京駅八重洲口でおいしい食事をしたい。店名と住所も教えてください"}')
-
-# A: ツールなし（Session5 の API の URL）
-$apiA = "<Session5 の API の URL>"
-$a = Invoke-RestMethod -Method Post -Uri "$apiA/" -ContentType "application/json; charset=utf-8" -Body $bytes
-$a.answer
-
-# B: 店リストのツールあり（Session6 の API の URL）
-$apiB = "<検索用の API の URL>"
-$b = Invoke-RestMethod -Method Post -Uri "$apiB/" -ContentType "application/json; charset=utf-8" -Body $bytes
-$b.answer
-$b.sources
-```
-
-CORS の設定は、`Origin` ヘッダーを付けた `curl.exe` で確かめられます(PowerShell の `curl` は別のコマンドの別名なので、`curl.exe` と書きます)。
-
-```powershell
-$origin = "https://dev.<アプリID>.amplifyapp.com"
-curl.exe -s -i -X OPTIONS "$apiB/" -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
-```
-
-- 応答の `access-control-allow-origin` が `*` で、`access-control-allow-methods` に `POST`、`access-control-allow-headers` に `content-type` が含まれていれば設定は正しいです。
-- `curl.exe` は CORS を強制しません。成功したかどうかではなく、ヘッダーの有無を読んでください。
-
-- `A` は、AI の知識だけで答えた回答です。
-- `B` は、店リストを読んだ上で答えた回答です。`sources` に、参照したマップの名前が出ます。
-
-## 5. 精度を確かめる
-
-B の回答に出てきた店が、`shops.txt` に本当にあるかを確かめます。次の表に、A と B の結果を書き込んでください。
-
-| 確かめる項目 | A（ツールなし） | B（店リストあり） |
-|---|---|---|
-| 挙げた店は、店リストに載っているか | | |
-| 店名は正しく書けているか | | |
-| カテゴリ（とんかつ、カレーなど）と合っているか | | |
-| 店リストに無い店を挙げていないか | | |
-
-**精度の判断の目安**
-- 店リストに無い店を挙げていたら、その店は「誤り」とします。
-- 店名の誤字や、別の店と混ざっている場合も「誤り」とします。
-- B が A より誤りを減らせたかを確かめます。
-
-> **ふりかえり**: 店リストを読ませても、必ず正しくなるわけではありません。店リストに無い店を挙げる、という誤りは起きます。「情報源を示させる」「自分で照合する」の 2 つを組み合わせることが、AI を使う上で大切です。
+- [ ] Lambda のテストで `statusCode: 200` が返る
+- [ ] HTTP API に `POST /`（パスなし）がある
+- [ ] API の CORS で、許可されたオリジンを `*` にした
+- [ ] PowerShell で、日本語のおすすめを取得できる
 
 ## 片付け
 
-ハンズオンが終わったら、次の順番で削除してください。
+1. API Gateway の `travel-recommendation-api-<名前>` を削除する
+2. Lambda の `travel-recommendation-<名前>` を削除する
+3. IAM に作成された実行ロールを削除する（他の関数で共有していないことを確認）
 
-1. API Gateway → `travel-search-api-<名前>` を削除する
-2. Lambda → `travel-search-function-<名前>` を削除する
+Bedrock への呼び出しは従量課金です。使い終わったら API を削除し、不要な呼び出しが続かないようにしてください。
 
-## 次へ
-
-Session6 はここまでです。
+Bedrock API は認証されないため、CORS と API URL を公開範囲に注意して管理してください。

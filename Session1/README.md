@@ -91,7 +91,7 @@
    - `config.js`
 4. **「アップロード」** をクリック
 
-> 6 ファイルすべてが「成功しました」と表示されれば OK です。フォルダは作らず、バケットの直下に置きます。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session6 の設定後に使えます。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。フォルダは作らず、バケットの直下に置きます。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session7 の設定後に使えます。
 
 ---
 
@@ -148,7 +148,7 @@ S3 のファイルを置き換えただけでは、公開中のサイトは変�
 
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケットと別のアプリ）は Session4、料理のおすすめ機能は Session6 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケットと別のアプリ）は Session4、料理のおすすめ機能は Session7 で設定します。
 
 > ハンズオン終了後は、Amplify のアプリを削除し、S3 バケットを空にして削除してください。公開したままのサイトを不要なまま残さないようにします。
 
@@ -306,4 +306,4 @@ header {
 
 ### AI おすすめ機能が動かない
 
-- `index.html` は書き換えず、Session6 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session6 で設定します」と表示されるのが正常です
+- `index.html` は書き換えず、Session7 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session7 で設定します」と表示されるのが正常です
