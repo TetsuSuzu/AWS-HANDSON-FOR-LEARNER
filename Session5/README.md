@@ -22,7 +22,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
-- Session1 の Amplify の URL を控える。`https://` から始まるオリジン全体を控える
+- Session1 の Amplify の URL を控えておく（ブラウザーでの動作確認に使う）
 - AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
 - Session5 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
 
@@ -170,14 +170,14 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
    | 項目 | 値 |
    |---|---|
-   | 許可されたオリジン | 実際にサイトを開く URL のオリジン。Amplify は `https://dev.<アプリID>.amplifyapp.com` |
+   | 許可されたオリジン | `*`（すべてのオリジンを許可。ハンズオン用の設定） |
    | 許可されたメソッド | `POST`, `OPTIONS` |
    | 許可されたヘッダー | `content-type` |
    | 認証情報 | 無効 |
 
 3. 保存する。`dev` ステージの自動デプロイが有効なら設定は自動反映される
 
-ブラウザーで確認するときは実際の公開元 URL とスキームを許可します。ワイルドカード `*` は使わず、必要なオリジンだけを許可してください。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
+`*` は、どのサイトからでもこの API を呼べるようにする、ハンズオン用の設定です。実際のサービスでは、使うサイトのオリジンだけを許可します。`*` のときは、認証情報を有効にできません（無効のまま）。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
 
 ## 6. API の URL で動作を確かめる
 
@@ -201,7 +201,7 @@ Amazon Bedrock Runtime（Claude Sonnet 4.6）
 
 - [ ] Lambda のテストで `statusCode: 200` が返る
 - [ ] HTTP API に `POST /`（パスなし）がある
-- [ ] サイトのオリジンが API CORS で許可されている
+- [ ] API の CORS で、許可されたオリジンを `*` にした
 - [ ] PowerShell で、日本語のおすすめを取得できる
 
 ## 片付け

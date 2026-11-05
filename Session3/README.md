@@ -129,27 +129,30 @@ Amplify で公開したサイトは、誰でも閲覧できます。機密情報
 
 ## 3-7. CORS を設定する
 
-CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。Session1 の Amplify の URL の「オリジン」（スキームとホスト名。パスや末尾の `/` は含めない）を許可します。
+CORS は、ブラウザーから別のドメインにある API を呼び出すときに必要な許可設定です。オリジンは、サイトの URL のうち、スキームとホスト名の部分です（例: `https://dev.<アプリID>.amplifyapp.com`）。このハンズオンでは、動作確認を優先して、許可するオリジンに `*`（すべてのオリジン）を指定します。
 
 1. **API Gateway** → `users-api-<名前>` → **CORS** を開く（API の **設定** 内にある場合もあります）
 2. 次のとおり設定する
 
    | 項目 | 設定値 |
    |---|---|
-   | 許可されたオリジン（Access-Control-Allow-Origin） | 実際にブラウザーで開くサイトのオリジン。Amplify は `https://dev.<アプリID>.amplifyapp.com`（Session1 の 3-3 で控えた URL）。複数の URL から使う場合は各オリジンを追加 |
+   | 許可されたオリジン（Access-Control-Allow-Origin） | `*`（すべてのオリジンを許可）。ハンズオン用の設定です |
    | 許可されたメソッド（Access-Control-Allow-Methods） | `POST`, `OPTIONS` |
    | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
 
 3. 保存する。ステージ `dev` の自動デプロイが有効なら、設定は自動で反映される
 
-> **注意**: URL に含まれるスキーム（`http://` または `https://`）とホスト名を正確に登録します。末尾にパス（例: `/index.html`）や `/` を付けません。`*` の許可は使わず、必要なサイトだけを登録します。
+> **ハンズオン用の設定です**: `*` は、どのサイトのブラウザーからでも、この API を呼べるようにします。手順を簡単にするための設定で、実際のサービスでは使いません。実際のサービスでは、使うサイトのオリジンだけを登録します（スキームとホスト名を正確に。パスや末尾の `/` は付けない）。
+>
+> - この API には認証がありません。ハンズオンが終わったら、3-9 の手順で API を削除してください。
+> - `*` を指定するときは、認証情報（Access-Control-Allow-Credentials）を有効にできません。**無効** のままにします。
 >
 > HTTP API の CORS を API Gateway 側で設定した場合、API Gateway が CORS 応答ヘッダーを返し、プリフライト（OPTIONS）要求にも応答します。OPTIONS 用の Lambda ルートは追加しません。Lambda の応答側に別の CORS ヘッダーを追加しないでください。
 
 ### 確認ポイント
 
-- [ ] 実際のフロントエンド URL のオリジンを許可した
+- [ ] 許可されたオリジンを `*` にした
 - [ ] `POST`, `OPTIONS` と `content-type` を許可した
 - [ ] 認証情報は無効になっている
 
@@ -188,13 +191,13 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 CORS を許可するかどうかを決めるのはブラウザーですが、ブラウザーが見るのは API の応答ヘッダーです。`Origin` ヘッダーを付けて `curl.exe` で呼ぶと、同じヘッダーを PowerShell から確かめられます。PowerShell の `curl` は別のコマンドの別名なので、必ず `curl.exe` と書きます。
 
 ```powershell
-# 3-7 で許可したオリジン(Session1 の Amplify のサイト)
+# ブラウザーが送るオリジン(Session1 の Amplify のサイト)
 $origin = "https://dev.<アプリID>.amplifyapp.com"
 
 # ① プリフライト: ブラウザーが POST の前に自動で送る OPTIONS を再現する
 curl.exe -s -i -X OPTIONS "$api/" -H "Origin: $origin" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 
-# ② 許可していないオリジンでも試す(許可ヘッダーが返らないのが正しい)
+# ② 別のオリジンでも試す(`*` を許可しているので、こちらにも許可ヘッダーが返るのが正しい)
 curl.exe -s -i -X OPTIONS "$api/" -H "Origin: http://example.com" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
 ```
 
@@ -203,11 +206,11 @@ curl.exe -s -i -X OPTIONS "$api/" -H "Origin: http://example.com" -H "Access-Con
 | 見る場所 | 正しい状態 |
 |---|---|
 | 1 行目 | `HTTP/1.1 204`（または `200`） |
-| `access-control-allow-origin` | `$origin` と同じ値 |
+| `access-control-allow-origin` | `*` |
 | `access-control-allow-methods` | `POST` を含む |
 | `access-control-allow-headers` | `content-type` を含む |
 
-②の応答には `access-control-allow-origin` が出ません。出ていたら、許可するオリジンを広げすぎています。
+②の応答にも `access-control-allow-origin: *` が出ます。`*` はすべてのオリジンを許可する設定だからです。実際のサービスでオリジンを絞った場合は、②では出なくなります。
 
 > `curl.exe` は CORS を強制しません。ヘッダーがなくてもリクエスト自体は成功するので、成功したかどうかではなく、ヘッダーの有無を読んでください。
 
@@ -217,8 +220,8 @@ curl.exe -s -i -X OPTIONS "$api/" -H "Origin: http://example.com" -H "Access-Con
 
 | 番号 | テスト | 期待する結果 |
 |---|---|---|
-| 1 | プリフライト（許可したオリジン） | 204 または 200。`allow-origin` が Origin と同じ。`allow-methods` に `POST`、`allow-headers` に `content-type` |
-| 2 | プリフライト（許可していないオリジン） | `access-control-allow-origin` が出ない |
+| 1 | プリフライト | 204 または 200。`allow-origin` が `*`（オリジンを絞った場合は Origin と同じ値）。`allow-methods` に `POST`、`allow-headers` に `content-type` |
+| 2 | プリフライト（別のオリジン） | `*` を許可しているので、`access-control-allow-origin` が `*` で返る（絞った場合は出ない） |
 | 3 | 会員登録（正常） | 201。**実際の応答にも** `access-control-allow-origin` が付く |
 | 4 | 同じ ID をもう一度登録 | 409 |
 | 5 | 必須項目が足りない | 400 |
@@ -229,17 +232,17 @@ cd <このリポジトリ>\Session3
 .\curl-test.ps1 -Api "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev" -Origin "https://dev.<アプリID>.amplifyapp.com"
 ```
 
-- `-Api` は 3-5 で控えた URL（ステージ名の `/dev` まで）、`-Origin` は 3-7 で CORS に登録したオリジンです。
+- `-Api` は 3-5 で控えた URL（ステージ名の `/dev` まで）、`-Origin` はブラウザーが送るオリジン（Amplify の URL）です。
 - スクリプトを実行できない場合は、`Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` を実行してからもう一度試します（今開いている PowerShell だけに効きます）。
 - テスト 3 で、DynamoDB に会員を 1 件登録します（ID は `curl-<日時>`）。不要になったら、Session4 の管理画面か DynamoDB の画面で削除してください。
 
-テスト 1・2 が失敗するときは、3-7 の CORS の設定（オリジンの綴り、`POST`・`OPTIONS`、`content-type`）を見直してください。テスト 3 が 404 のときは 3-3 のルート（`POST /`）を、500 のときは Lambda の権限（2-6）を確認します。
+テスト 1・2 が失敗するときは、3-7 の CORS の設定（`*`、`POST`・`OPTIONS`、`content-type`）を見直してください。テスト 3 が 404 のときは 3-3 のルート（`POST /`）を、500 のときは Lambda の権限（2-6）を確認します。
 
 ### 確認ポイント
 
 - [ ] POST で 201 相当の結果（`message` と `user`）が返る
-- [ ] プリフライトの応答に、許可したオリジンと `POST`、`content-type` が出る
-- [ ] 許可していないオリジンでは `access-control-allow-origin` が出ない
+- [ ] プリフライトの応答に、`access-control-allow-origin: *` と `POST`、`content-type` が出る
+- [ ] 別のオリジンでも `access-control-allow-origin: *` が出る（`*` を許可しているため）
 
 > **うまくいかないとき**
 > - `{"message":"Not Found"}`（404）: API Gateway がルートを見つけられていません。次を順に確認してください。

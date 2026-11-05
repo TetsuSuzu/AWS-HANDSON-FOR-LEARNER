@@ -5,7 +5,7 @@
 #   .\curl-test.ps1 -Api "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev" -Origin "https://dev.xxxxxxxxxxxxxx.amplifyapp.com"
 #
 # -Api    : 3-5 で控えた API の URL（ステージ名 /dev まで。末尾に / は付けない）
-# -Origin : 3-7 で CORS に登録したオリジン（Amplify の URL。パスや末尾の / は付けない）
+# -Origin : ブラウザーが送るオリジン（Amplify の URL。パスや末尾の / は付けない）
 #
 # 注意: テスト 3 で、DynamoDB に会員を 1 件登録します（ID は curl-<日時>）。
 #       不要になったら、Session4 の管理画面か DynamoDB の画面で削除してください。
@@ -51,21 +51,22 @@ Write-Host ""
 $r = Invoke-Curl @("-X", "OPTIONS", $Url, "-H", "Origin: $Origin",
     "-H", "Access-Control-Request-Method: POST", "-H", "Access-Control-Request-Headers: content-type")
 Check "1. プリフライト: 204 または 200 が返る" ($r.Status -in 200, 204) "status=$($r.Status)"
-Check "1. プリフライト: access-control-allow-origin が Origin と同じ" ($r.Allow -eq $Origin) "値='$($r.Allow)'"
+Check "1. プリフライト: access-control-allow-origin が * または Origin と同じ" ($r.Allow -in "*", $Origin) "値='$($r.Allow)'"
 Check "1. プリフライト: allow-methods に POST が含まれる" ($r.Methods -match "POST") "値='$($r.Methods)'"
 Check "1. プリフライト: allow-headers に content-type が含まれる" ($r.Headers -match "content-type") "値='$($r.Headers)'"
 
 # --- 2. プリフライト（許可していないオリジン）---
 $r = Invoke-Curl @("-X", "OPTIONS", $Url, "-H", "Origin: http://example.com",
     "-H", "Access-Control-Request-Method: POST", "-H", "Access-Control-Request-Headers: content-type")
-Check "2. 許可していないオリジン: 応答があり、access-control-allow-origin が出ない" ($r.Status -ne 0 -and $r.Allow -eq "") "status=$($r.Status) 値='$($r.Allow)'"
+# * を許可している場合は * が返る。オリジンを絞っている場合は何も返らない。どちらも想定どおり。
+Check "2. 別のオリジン: 応答があり、access-control-allow-origin が * か、出ない（絞っている場合）" ($r.Status -ne 0 -and $r.Allow -in "*", "") "status=$($r.Status) 値='$($r.Allow)'"
 
 # --- 3. 会員登録（正常）---
 $id = "curl-" + (Get-Date -Format "yyyyMMddHHmmss")
 Write-Body ('{"id":"' + $id + '","name":"Curl Test","email":"curl@example.com","age":30,"address":"Tokyo","tel":"09012345678"}')
 $r = Invoke-Curl @("-X", "POST", $Url, "-H", "Origin: $Origin", "-H", "Content-Type: application/json", "--data-binary", "@$tmp")
 Check "3. 会員登録: 201 が返る" ($r.Status -eq 201) "status=$($r.Status) body=$($r.Body)"
-Check "3. 会員登録: 実際の応答にも access-control-allow-origin が付く" ($r.Allow -eq $Origin) "値='$($r.Allow)'"
+Check "3. 会員登録: 実際の応答にも access-control-allow-origin が付く" ($r.Allow -in "*", $Origin) "値='$($r.Allow)'"
 
 # --- 4. 同じ ID をもう一度登録（重複）---
 $r = Invoke-Curl @("-X", "POST", $Url, "-H", "Origin: $Origin", "-H", "Content-Type: application/json", "--data-binary", "@$tmp")
