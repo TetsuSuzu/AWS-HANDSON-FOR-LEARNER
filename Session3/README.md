@@ -5,7 +5,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 開始前に [Session2](../Session2/README.md) の DynamoDB と Lambda を作成・テストしてください。
 
 > **API Gateway（HTTP API）とは？**
-> 外からの要求（HTTP リクエスト）を受け付けて、対応する Lambda に渡す入口です。このハンズオンでは、API の URL そのものが「会員登録」の入口になります。URL の後ろにパスは付けません。
+> 外からの要求（HTTP リクエスト）を受け付けて、対応する Lambda に渡す入口です。このハンズオンでは、ステージ名までの URL（`.../dev`）そのものが「会員登録」の入口になります。その後ろにパスは付けません。
 
 ## 3-1. API Gateway の画面を開く
 
@@ -43,9 +43,22 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 
 ## 3-4. ステージを設定する
 
-**ステージ** は、API の「公開の段階」です。ここでは、URL にステージ名が付かない `$default` を使います。
+> **ステージと環境とは？**
+> **環境** は、システムを動かす場所を、目的ごとに分けたものです。たとえば、作っている最中のものを試す **開発環境**、公開前に確かめる **検証環境**、利用者が実際に使う **本番環境** に分けます。環境を分けておくと、開発中の変更が本番の利用者に影響しません。
+>
+> API Gateway では、この環境の区分を **ステージ** で表します。同じ API を、`dev`、`stg`、`prod` のような名前のステージで別々に公開できます。ステージの名前は URL の一部になり、`https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev` のように、末尾にステージ名が付きます。
+>
+> | 環境 | ステージ名の例 |
+> |---|---|
+> | 開発環境 | `dev` |
+> | 検証環境 | `stg`（`test` や `staging` も使われます） |
+> | 本番環境 | `prod` |
+>
+> 名前を `$default` にしたステージは特別で、URL にステージ名が付きません。簡単に始めたいときに便利ですが、環境の区別がつかなくなります。
 
-1. ステージ名: **`$default`** のまま
+このハンズオンは学習用なので、開発環境にあたるステージ **`dev`** を 1 つだけ作ります。
+
+1. ステージ名: 初期値の `$default` を消して、**`dev`** と入力する
 2. **自動デプロイ** が有効になっていることを確認する（既定で有効）
 3. **次へ** → **作成**
 
@@ -54,7 +67,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 ## 3-5. API の URL を控える
 
 1. 作成した API（`users-api-<名前>`）の画面を開く
-2. **API の詳細** 、または概要に表示される **URL**（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える
+2. **ステージ** で `dev` を選び、表示される **URL を呼び出す**（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。API の概要に表示される URL の場合は、末尾に `/dev` を付ける
 3. 末尾に `/` は付けない
 
 > この URL が、呼び出す側（Web の画面、Android アプリなど）に設定する値です。
@@ -62,7 +75,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 ### 確認ポイント
 
 - [ ] ルート `POST /`（パスなし）があり、`users-function-<名前>` につながっている
-- [ ] ステージが `$default`
+- [ ] ステージが `dev`
 - [ ] API の URL を控えた
 
 ## 3-6. Session1 のサイトに API URL を設定する
@@ -70,7 +83,7 @@ Lambda を、インターネットから呼べる URL（API）に公開します
 Session1 の静的サイトから API を呼ぶには、API の URL を `Session1/config.js` に設定します。`<API の URL>` は 3-5 で控えた値に置き換え、末尾に `/` は付けません。
 
 ```javascript
-window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
+window.API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev";
 ```
 
 ### Session1 の S3 静的サイトを更新する
@@ -102,7 +115,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
    | 許可されたヘッダー（Access-Control-Allow-Headers） | `content-type` |
    | 認証情報（Access-Control-Allow-Credentials） | 無効 |
 
-3. 保存する。ステージ `$default` の自動デプロイが有効なら、設定は自動で反映される
+3. 保存する。ステージ `dev` の自動デプロイが有効なら、設定は自動で反映される
 
 > **注意**: URL に含まれるスキーム（`http://` または `https://`）とホスト名を正確に登録します。末尾にパス（例: `/index.html`）や `/` を付けません。`*` の許可は使わず、必要なサイトだけを登録します。
 >
@@ -121,7 +134,7 @@ CORS は、ブラウザーから別のドメインにある API を呼び出す�
 ### 会員を登録する（POST）
 
 ```powershell
-$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
 $body = '{"id":"u-0001","name":"山田太郎","email":"taro@example.com","age":30,"address":"東京都千代田区1-1","tel":"09012345678"}'
 Invoke-RestMethod -Method Post -Uri $api -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 ```

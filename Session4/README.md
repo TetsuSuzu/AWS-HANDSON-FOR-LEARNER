@@ -147,8 +147,8 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 
    > `{id}` は、実際の会員の ID が入る場所です。波括弧を含めてそのまま入力します。
 
-4. ステージは `$default`、自動デプロイを有効にして作成する
-5. API の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com`）を控える。末尾の `/` は付けない
+4. ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にして作成する
+5. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾の `/` は付けない
 
 ## 6. API の CORS を設定する
 
@@ -171,7 +171,7 @@ Lambda の **設定** タブ → **環境変数** → **編集** で、次を追
 `Session1/config.js` の `window.ADMIN_API_ENDPOINT` に、手順 5 で控えた URL を設定します。末尾に `/` は付けません。
 
 ```javascript
-window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com";
+window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev";
 ```
 
 手順 4 で作った **管理画面用のバケット** を開き、次の 4 ファイルをバケット直下にアップロードします。
@@ -196,7 +196,7 @@ window.ADMIN_API_ENDPOINT = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazo
 ### PowerShell から API を呼んで確かめる（任意）
 
 ```powershell
-$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com"
+$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
 # 一覧
 (Invoke-RestMethod -Uri "$api/users").users
 ```
