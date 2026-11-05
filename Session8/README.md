@@ -1,5 +1,7 @@
 # Session8 — Aurora と Lambda（Python）で会員 API を作る
 
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session8_` で始まるファイルを開き、中身をコピーして使えます。
+
 [Session2](../Session2/README.md) の DynamoDB 版と同じ会員 API を、**Amazon Aurora（PostgreSQL 互換）** で作ります。Session4 まで（会員登録・管理画面が DynamoDB）を終えてから行ってください。API の形は同じなので、Session3・4 の画面は API の URL を差し替えるだけで使えます。
 
 > **このセッションの位置づけ**

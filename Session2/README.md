@@ -1,5 +1,7 @@
 # Session2 — DynamoDB と Lambda で会員 API の処理を作る
 
+> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/85e34b4acd299711ee18f6161205fe3f) にあります。`Session2_` で始まるファイルを開き、中身をコピーして使えます。
+
 先に [Session0](../Session0/README.md) で教材を入手し、[Session1](../Session1/README.md) で S3 静的サイトを作成してください。このセッションでは、そのサイトから使う会員 API の処理を DynamoDB と Lambda で作成します。Session2 では Lambda 単体のテストまで行い、HTTP API への接続は Session3 で設定します。
 
 ## このセッションで作るもの
@@ -105,3 +107,57 @@ Lambda（users-function-<名前>）
 | DynamoDB テーブル | `users-table-<名前>` |
 | Lambda 関数 | `users-function-<名前>` |
 | Lambda 実行ロール | 関数作成時に生成されたロール |
+
+
+---
+
+## 補足：Lambda のハンドラとは？
+
+`lambda_function.handler` は **「ファイル名.関数名」** の形式で書かれています。
+
+### 読み方
+
+```
+lambda_function.handler
+      │            │
+      │            └─ 関数名（def handler の部分）
+      └─ ファイル名（拡張子 .py は付けない）
+```
+
+したがって、ファイル名は **`lambda_function.py`** になります。
+
+```python
+# ファイル名: lambda_function.py
+
+def handler(event, context):
+    return {
+        "statusCode": 200,
+        "body": "Hello",
+    }
+```
+
+このとき、Lambda の設定画面の「ハンドラ」欄には `lambda_function.handler` と入力します。
+
+### 注意点
+
+- **拡張子は書かない**: `lambda_function.py.handler` ではなく `lambda_function.handler` です。
+- **関数名も合わせる**: ハンドラ設定が `lambda_function.handler` なら、コード内に `def handler(...)` が必要です。`def lambda_handler(...)` と書いていると呼び出せません。
+- **AWS コンソールの初期値は少し違う**: コンソールで Python の Lambda を新規作成すると、初期値は `lambda_function.lambda_handler` になります。この場合、ファイルは `lambda_function.py`、関数名は `lambda_handler` です。
+
+### 対応の例
+
+| ハンドラ設定 | ファイル名 | 関数名 |
+|---|---|---|
+| `lambda_function.handler` | `lambda_function.py` | `handler` |
+| `lambda_function.lambda_handler` | `lambda_function.py` | `lambda_handler` |
+| `main.handler` | `main.py` | `handler` |
+| `app.main.run` | `app/main.py`（フォルダ内） | `run` |
+
+最後の例のように、フォルダの中にファイルがある場合は、区切りに `.` を使います（`app/main.py` の `run` 関数なら `app.main.run`）。
+
+### エラーが出たとき
+
+ハンドラ設定とコードが合っていないと、次のようなエラーが出ます。
+
+- `Runtime.ImportModuleError: Unable to import module 'lambda_function'`: ファイルが見つかりません。ファイル名が違うか、ZIP の中での置き場所が違う可能性があります。
+- `Runtime.HandlerNotFound: ... has no attribute 'handler'`: ファイルは見つかったものの、その名前の関数がありません。関数名の綴りを確認してください。
