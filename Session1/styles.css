@@ -188,13 +188,13 @@ form button.link-button {
     padding: 0.25rem 0;
     margin-right: 1rem;
     background: none;
-    color: #2e7d32;
+    color: #1f6fb2;
     text-decoration: underline;
 }
 
 form button.link-button:hover {
     background: none;
-    color: #1b5e20;
+    color: #256aa3;
 }
 
 /* form の display: flex に負けず、hidden 属性で確実に隠す */
