@@ -201,3 +201,48 @@ form button.link-button:hover {
 [hidden] {
     display: none !important;
 }
+
+/* 会員登録をページの主役にする（幅を広げて中央に置き、枠で目立たせる） */
+#signup {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 2rem;
+    border: 3px solid #2f7fc1;
+}
+
+#signup > h2 {
+    font-size: 2rem;
+    text-align: center;
+}
+
+/* おすすめ風景：320×240 の写真を横に 2 枚並べる（狭い画面では折り返して縦に並ぶ） */
+#photos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+#photos > h2 {
+    flex-basis: 100%;
+    margin: 0;
+    text-align: center;
+}
+
+.photo-card {
+    margin: 0;
+    text-align: center;
+}
+
+.photo-card img {
+    display: block;
+    width: 320px;
+    height: 240px;
+    object-fit: cover;
+}
+
+.photo-card figcaption {
+    margin-top: 0.5rem;
+    font-weight: bold;
+}
