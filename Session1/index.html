@@ -12,9 +12,8 @@
         <nav>
             <ul>
                 <li><a href="#home">ホーム</a></li>
-                <li><a href="#photo1">おすすめ風景①</a></li>
-                <li><a href="#photo2">おすすめ風景②</a></li>
                 <li><a href="#signup">会員登録</a></li>
+                <li><a href="#photos">おすすめ風景</a></li>
                 <li><a href="#recommendation">料理のおすすめ</a></li>
             </ul>
         </nav>
@@ -24,20 +23,6 @@
         <section id="home">
             <h2>ようこそ</h2>
             <p>私たちのウェブサイトへようこそ。ここでは、AWSの最新のサービスと情報について、学んでいきます。</p>
-            <p>また、勉強以外にも、旅行に役立つ素敵な情報をお届けします。ぜひ、おすすめ風景を楽しんでみてください。</p>
-            <p>会員登録機能は Session3 で API と接続します。</p>
-        </section>
-
-        <section id="photo1">
-            <h2>おすすめ風景①</h2>
-            <h2>～新潟県かぐらみつまたスキー場～</h2>
-            <img src="photo1.png" alt="おすすめ風景a">
-        </section>
-
-        <section id="photo2">
-            <h2>おすすめ風景②</h2>
-            <h2>～富津海岸から望む富士山～</h2>
-            <img src="photo2.png" alt="おすすめ風景b">
         </section>
 
         <section id="signup">
@@ -45,15 +30,21 @@
             <div id="signupPanel" hidden>
                 <h3>メールアドレスとパスワードで会員登録します</h3>
                 <form id="signupForm">
-                    <label for="signupUsername">ユーザID（会員ID になります）</label>
-                    <input id="signupUsername" type="text" name="username" required pattern="[A-Za-z0-9_\-]+" autocomplete="username">
+                    <div class="field">
+                        <label for="signupUsername">ユーザID（会員ID になります）</label>
+                        <input id="signupUsername" type="text" name="username" required pattern="[A-Za-z0-9_\-]+" autocomplete="username">
+                    </div>
                     <p>ユーザIDは英数字で入力してください（メールアドレスの形式は使えません）。</p>
 
-                    <label for="signupEmail">メールアドレス</label>
-                    <input id="signupEmail" type="email" name="email" required autocomplete="email">
+                    <div class="field">
+                        <label for="signupEmail">メールアドレス</label>
+                        <input id="signupEmail" type="email" name="email" required autocomplete="email">
+                    </div>
 
-                    <label for="signupPassword">パスワード</label>
-                    <input id="signupPassword" type="password" name="password" required autocomplete="new-password">
+                    <div class="field">
+                        <label for="signupPassword">パスワード</label>
+                        <input id="signupPassword" type="password" name="password" required autocomplete="new-password">
+                    </div>
 
                     <p><button type="button" id="signupButton">サインアップ</button></p>
                     <p id="signupStatus" aria-live="polite"></p>
@@ -67,11 +58,15 @@
             <div id="confirmPanel" hidden>
                 <h3>メールに届いた確認コードを入力してください</h3>
                 <form id="confirmForm">
-                    <label for="confirmUsername">ユーザID</label>
-                    <input id="confirmUsername" type="text" name="username" required pattern="[A-Za-z0-9_\-]+" autocomplete="username">
+                    <div class="field">
+                        <label for="confirmUsername">ユーザID</label>
+                        <input id="confirmUsername" type="text" name="username" required pattern="[A-Za-z0-9_\-]+" autocomplete="username">
+                    </div>
 
-                    <label for="confirmCode">確認コード</label>
-                    <input id="confirmCode" type="text" name="code" required inputmode="numeric" autocomplete="one-time-code">
+                    <div class="field">
+                        <label for="confirmCode">確認コード</label>
+                        <input id="confirmCode" type="text" name="code" required inputmode="numeric" autocomplete="one-time-code">
+                    </div>
 
                     <p><button type="button" id="confirmButton">確認する</button></p>
                     <p id="confirmStatus" aria-live="polite"></p>
@@ -82,11 +77,15 @@
             <div id="loginPanel" hidden>
                 <h3>ログイン</h3>
                 <form id="loginForm">
-                    <label for="loginUsername">ユーザID</label>
-                    <input id="loginUsername" type="text" name="username" required autocomplete="username">
+                    <div class="field">
+                        <label for="loginUsername">ユーザID</label>
+                        <input id="loginUsername" type="text" name="username" required autocomplete="username">
+                    </div>
 
-                    <label for="loginPassword">パスワード</label>
-                    <input id="loginPassword" type="password" name="password" required autocomplete="current-password">
+                    <div class="field">
+                        <label for="loginPassword">パスワード</label>
+                        <input id="loginPassword" type="password" name="password" required autocomplete="current-password">
+                    </div>
 
                     <p><button type="button" id="loginButton">ログイン</button></p>
                     <p id="loginStatus" aria-live="polite"></p>
@@ -99,27 +98,51 @@
 
             <h3 id="registrationHeading">必要事項をご記入の上、登録ボタンを押してください</h3>
             <form id="registrationForm">
-                <label for="id">ユーザID</label>
-                <input id="id" type="text" name="id" required><br>
+                <div class="field">
+                    <label for="id">ユーザID</label>
+                    <input id="id" type="text" name="id" required>
+                </div>
 
-                <label for="name">名前</label>
-                <input id="name" type="text" name="name" required><br>
+                <div class="field">
+                    <label for="name">名前</label>
+                    <input id="name" type="text" name="name" required>
+                </div>
 
-                <label for="email">メールアドレス</label>
-                <input id="email" type="email" name="email" required><br>
+                <div class="field">
+                    <label for="email">メールアドレス</label>
+                    <input id="email" type="email" name="email" required>
+                </div>
 
-                <label for="age">年齢</label>
-                <input id="age" type="number" name="age" min="0" required><br>
+                <div class="field">
+                    <label for="age">年齢</label>
+                    <input id="age" type="number" name="age" min="0" required>
+                </div>
 
-                <label for="address">住所</label>
-                <input id="address" type="text" name="address" required><br>
+                <div class="field">
+                    <label for="address">住所</label>
+                    <input id="address" type="text" name="address" required>
+                </div>
 
-                <label for="tel">電話番号</label>
-                <input id="tel" type="tel" name="tel" required><br>
+                <div class="field">
+                    <label for="tel">電話番号</label>
+                    <input id="tel" type="tel" name="tel" required>
+                </div>
 
                 <p><button type="button" id="registerButton">登録</button></p>
                 <p id="registrationStatus" aria-live="polite"></p>
             </form>
+        </section>
+
+        <section id="photos">
+            <h2>おすすめ風景</h2>
+            <figure class="photo-card">
+                <img src="photo1.png" alt="おすすめ風景①：新潟県かぐらみつまたスキー場のコブ斜面">
+                <figcaption>おすすめ風景①<br>～新潟県かぐらみつまたスキー場～</figcaption>
+            </figure>
+            <figure class="photo-card">
+                <img src="photo2.png" alt="おすすめ風景②：富津海岸から望む夕焼けの富士山">
+                <figcaption>おすすめ風景②<br>～富津海岸から望む富士山～</figcaption>
+            </figure>
         </section>
 
         <section id="recommendation">

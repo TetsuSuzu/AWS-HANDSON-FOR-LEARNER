@@ -201,3 +201,150 @@ form button.link-button:hover {
 [hidden] {
     display: none !important;
 }
+
+/* 会員登録をページの主役にする（幅を広げて中央に置き、枠で目立たせる） */
+#signup {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 2rem;
+    border: 3px solid #2f7fc1;
+}
+
+#signup > h2 {
+    font-size: 2rem;
+    text-align: center;
+}
+
+/* おすすめ風景：320×240 の写真を横に 2 枚並べる（狭い画面では折り返して縦に並ぶ） */
+#photos {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+#photos > h2 {
+    flex-basis: 100%;
+    margin: 0;
+    text-align: center;
+}
+
+.photo-card {
+    margin: 0;
+    text-align: center;
+}
+
+.photo-card img {
+    display: block;
+    width: 320px;
+    height: 240px;
+    object-fit: cover;
+}
+
+.photo-card figcaption {
+    margin-top: 0.5rem;
+    font-weight: bold;
+}
+
+/* ブラウザの 1 画面に会員登録が収まるように、文字と余白を小さくした表示 */
+header {
+    padding: 0.5rem 0;
+}
+
+header h1 {
+    margin: 0.25rem 0;
+    font-size: 1.3rem;
+}
+
+nav ul li a {
+    font-size: 0.85rem;
+}
+
+main {
+    padding: 1rem 1rem 4rem;
+}
+
+section {
+    margin-bottom: 1rem;
+    padding: 1rem 1.25rem;
+}
+
+section h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+}
+
+#home p {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+}
+
+footer {
+    padding: 0.4rem 0;
+    font-size: 0.8rem;
+}
+
+footer p {
+    margin: 0;
+}
+
+/* 会員登録の入力欄は、2 列に並べて高さを抑える（ボタンや説明は 2 列をまたぐ） */
+#signup {
+    max-width: 860px;
+    padding: 1rem 1.5rem;
+}
+
+#signup > h2 {
+    margin: 0 0 0.25rem;
+    font-size: 1.4rem;
+}
+
+#signup h3 {
+    margin: 0.25rem 0 0.5rem;
+    font-size: 0.95rem;
+}
+
+#signup form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem 1.5rem;
+}
+
+#signup .field {
+    display: flex;
+    flex-direction: column;
+}
+
+#signup form label {
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+}
+
+#signup form input {
+    margin-bottom: 0;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+#signup form p {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+#signup form button {
+    padding: 0.4rem 1.5rem;
+    font-size: 0.9rem;
+}
+
+#signup form button.link-button {
+    padding: 0.15rem 0;
+}
+
+/* 狭い画面（スマホなど）では、入力欄を 1 列に戻す */
+@media (max-width: 600px) {
+    #signup form {
+        grid-template-columns: 1fr;
+    }
+}
