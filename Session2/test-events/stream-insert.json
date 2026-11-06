@@ -1,0 +1,29 @@
+{
+  "Records": [
+    {
+      "eventID": "1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
+      "eventName": "INSERT",
+      "eventVersion": "1.1",
+      "eventSource": "aws:dynamodb",
+      "awsRegion": "ap-northeast-1",
+      "dynamodb": {
+        "ApproximateCreationDateTime": 1767225600,
+        "Keys": {
+          "id": { "S": "u-0001" }
+        },
+        "NewImage": {
+          "id": { "S": "u-0001" },
+          "name": { "S": "山田太郎" },
+          "email": { "S": "taro@example.com" },
+          "age": { "N": "30" },
+          "address": { "S": "東京都千代田区丸の内1-1-1" },
+          "tel": { "S": "0312345678" }
+        },
+        "SequenceNumber": "111100000000012345678901",
+        "SizeBytes": 150,
+        "StreamViewType": "NEW_IMAGE"
+      },
+      "eventSourceARN": "arn:aws:dynamodb:ap-northeast-1:123456789012:table/users-table-yamada/stream/2026-01-01T00:00:00.000"
+    }
+  ]
+}
