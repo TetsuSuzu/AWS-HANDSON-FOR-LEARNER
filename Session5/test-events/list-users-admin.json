@@ -1,0 +1,26 @@
+{
+  "version": "2.0",
+  "routeKey": "GET /users",
+  "rawPath": "/users",
+  "headers": {
+  },
+  "queryStringParameters": {
+    "limit": "20"
+  },
+  "requestContext": {
+    "http": {
+      "method": "GET",
+      "path": "/users"
+    },
+    "authorizer": {
+      "jwt": {
+        "claims": {
+          "cognito:username": "admin-0001",
+          "email": "admin@example.com",
+          "cognito:groups": "[admins]"
+        }
+      }
+    }
+  },
+  "isBase64Encoded": false
+}

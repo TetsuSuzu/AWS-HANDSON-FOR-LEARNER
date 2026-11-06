@@ -1,215 +1,695 @@
-# Session5 — Amazon Bedrock で旅行先の料理をおすすめする
+# Session5 — Amazon Cognito でサインアップとログインを付ける
 
-> このセッションのコードは [gist](https://gist.github.com/TetsuSuzu/db058114db872972033f5bef4b347108) にあります。使うファイルを開き、中身をコピーして使えます。
+Session3 の会員登録 API と Session4 の管理 API は、URL を知っていれば誰でも呼べました。Session5 では、Amazon Cognito を使って、次の 2 つを付けます。
 
-利用者の希望を HTTP API と Lambda 経由で Amazon Bedrock に送り、生成 AI から日本語の料理提案を受け取ります。
-
-## 構成
-
-```text
-Session1 のブラウザー
-   │ POST（API の URL そのもの。パスなし）
-   ▼
-API Gateway HTTP API（ap-northeast-1）
-   │
-   ▼
-Lambda（Bedrock 呼び出し）
-   │
-   ▼
-Amazon Bedrock Runtime（Claude Sonnet 4.6）
-```
+- **5-A（主役）**: 会員が、ユーザID・メールアドレス・パスワードで **サインアップ** し、メールに届いた **確認コード** で確認してから **ログイン** し、会員情報を登録する。ログインしていない人や、他人の ID では登録できない
+- **5-B（後半）**: 管理 API と管理画面を、**管理者グループ（`admins`）に入った人だけ** が使えるようにする
 
 ## 事前準備
 
 - [Session1](../Session1/README.md)〜[Session4](../Session4/README.md) を完了する
-- Session1 の Amplify の URL を控えておく（ブラウザーでの動作確認に使う）
-- AWS アカウントで `ap-northeast-1`（東京）の Amazon Bedrock と Claude Sonnet 4.6 推論プロファイルが利用できることを確認する。モデルの利用可否・アクセス申請はアカウントやリージョンにより異なる
-- Session5 の API Gateway と Lambda は、Session2・Session3 と同じ `ap-northeast-1`（東京）に作成する
+- AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** にする
+- `<名前>` は Session2〜4 と同じ値を使う
+- 確認コードを受け取れる **自分のメールアドレス** を用意する（研修用のアドレスで構いません）
+- 6 の PowerShell の確認では **AWS CLI v2** を使います。`aws --version` で入っているか確かめてください（5-B の 5 も同じです）。入っていない場合は、5-A の 6 と 5-B の 5 を飛ばしても構いません。そのあとの画面での確認（5-A の 7、5-B の 6）が、どちらの代わりにもなります
 
-> **料金と公開範囲**: Lambda から Bedrock を呼ぶたびにモデル利用料が発生します。短いテスト入力で試し、完了後は作成した API と Lambda を削除してください。API に認証はありません。API URL を知る人は利用できるため、URL を公開サイトや不特定多数へ配布しないでください。
+この Session で使う、これまでのリソースは次のとおりです。
 
-## コードの読み方（lambda_function.py）
+| リソース | 作った Session | この Session でやること |
+|---|---|---|
+| Lambda `users-function-<名前>` | Session2 | コードを `Session5/lambda_function.py` に貼り替える |
+| HTTP API `users-api-<名前>`（ルート `POST /`、ステージ `dev`） | Session3 | JWT オーソライザーを付け、CORS に `authorization` を足す |
+| 会員向けサイト（S3 バケット、Amplify `site-<名前>`） | Session1・3 | `config.js` などを置き換えて、更新をデプロイ |
+| Lambda `users-admin-function-<名前>` | Session4 | コードを `Session5/admin_lambda_function.py` に貼り替える |
+| HTTP API `users-admin-api-<名前>`（4 つのルート、ステージ `dev`） | Session4 | JWT オーソライザーを付け、CORS に `authorization` を足す |
+| 管理画面（S3 バケット `lastname-firstname-admin`、Amplify `admin-<名前>`） | Session4 | `config.js` などを置き換えて、更新をデプロイ |
 
-`lambda_function.py` は、料理の希望を受け取り、Amazon Bedrock（生成 AI）に質問して、おすすめの答えを返す Python のプログラムです。
-
-### 用語の説明
-
-| 用語 | 意味 |
-|---|---|
-| `import` | ほかのプログラムの道具を借りる命令です。`json`（JSON を扱う）、`logging`（ログを残す）、`boto3`（AWS を操作する道具箱）を読み込んでいます |
-| `boto3` | Python から AWS を操作するための道具箱です |
-| Bedrock | AWS が提供する生成 AI のサービスです。文章で質問すると、文章で答えてくれます |
-| モデル | 生成 AI の本体です。`MODEL_ID` で、どのモデルを使うかを指定します |
-| プロンプト | AI に送る質問や指示の文章です。この教材では、ユーザーが入力した希望がプロンプトになります |
-| `logger` | 実行中の記録（ログ）を残す道具です。エラーの原因を調べるときに、CloudWatch Logs で見られます |
-| `ClientError` | AWS の呼び出しで起きたエラーの種類です |
-| 関数（`def`） | 処理のまとまりに名前を付けたものです。`def respond(...)` は、結果の形を作る関数です |
-
-### 1 行ずつの説明（主な部分）
-
-- `bedrock = boto3.client("bedrock-runtime", region_name="ap-northeast-1")`
-  - Bedrock と通信するための接続を作ります。`region_name` は、Bedrock を使う AWS のリージョン（場所）です。
-- `MODEL_ID = os.environ["MODEL_ID"]`
-  - 使う AI モデルの名前です。値は、コードではなく Lambda の環境変数から読みます。そのため、モデルを変えるときはコードを書き換えず、環境変数の値だけを変えます。
-- `MAX_PROMPT_LENGTH = 1000`
-  - 入力できる文字数の上限です。長すぎる入力は、ここで弾きます。
-- `def lambda_handler(event, context):`
-  - Lambda が最初に呼ぶ関数です。`event` は API からの要求、`context` は Lambda の実行情報です。
-- `body = json.loads(event.get("body") or "{}")`
-  - 送られてきたデータ（JSON の文字）を、Python のデータに変換します。`or "{}"` は、データがないときは空の辞書を使うという意味です。
-- `prompt = body.get("prompt")`
-  - データの中から、`prompt` の項目（ユーザーの希望）を取り出します。
-- `if not isinstance(prompt, str) or not prompt.strip(): ...`
-  - 「文字であること」「空でないこと」を確かめます。違えば、400（入力が正しくない）を返します。
-- `request_body = {...}`
-  - AI に送るデータを作ります。
-  - `system`: AI の役割を決める指示です（「旅行と郷土料理に詳しいアドバイザー」）。
-  - `messages`: ユーザーの質問です。
-  - `max_tokens`: 返事の長さの上限です。トークンは、AI が文章を扱うときの最小の単位です。
-  - `temperature`: 返事のゆらぎを決めます。0 に近いほど決まった答えになり、高いほど多様になります。
-- `response = bedrock.invoke_model(...)`
-  - Bedrock のモデルを呼び出して、返事を待ちます。
-- `result = json.loads(response["body"].read())`
-  - 返事を読み取り、Python のデータに変換します。
-- `answer = result["content"][0]["text"]`
-  - 返事の中から、文章の部分を取り出します。`[0]` は、最初の返事という意味です。
-- `return respond(200, {"answer": answer})`
-  - 成功したときは、200 と `answer` を返します。
-- `except (ClientError, KeyError, ...):`
-  - 途中でエラーが起きたら、エラーを記録して、502（外部の処理が失敗した）を返します。
-
-### テストイベント（test-event.json）
-
-テストイベントは、API Gateway が送ってくるはずの要求を、手で作った例です。Lambda の画面で「テスト」を押すときに使います。
-
-- `routeKey`: `POST /` を指定し、このプログラムを呼び出します。
-- `body`: 希望の文章です。JSON の文字の中にもう一度 JSON が入っているため、`\"` のように書いています。
+> **Session5 の途中は、画面から会員登録できない時間があります**: 5-A の 3 で `POST /` にオーソライザーを付けると、ログインの仕組みが入る前の画面（Session3 の画面）からは登録できなくなります（401）。5-A の 7 まで進めば、また登録できます。管理画面も同じで、5-B の 2 から 6 までの間は使えません。
 
 ---
 
-## 1. Lambda 関数を作成する
+## この Session で学ぶこと（講義）
 
-1. AWS コンソールのリージョンを **アジアパシフィック（東京） `ap-northeast-1`** に切り替える
-2. **Lambda** → **関数の作成** → **一から作成** を選ぶ
-3. 次の設定で作成する
+### 認証と認可
 
-   | 項目 | 値 |
+| 用語 | 意味 | この Session では |
+|---|---|---|
+| 認証 | 「あなたは誰か」を確かめること | Cognito のユーザID とパスワードで確かめる |
+| 認可 | 「何をしてよいか」を決めること | ① ログインした本人の ID でだけ会員登録できる ② 管理者グループの人だけが管理 API を使える |
+
+Session4 までは、認証も認可もありませんでした。Session5 で、その両方を簡単な形で付けます。
+
+### 使う 3 つの部品
+
+| 部品 | 役割 | たとえ |
+|---|---|---|
+| **Amazon Cognito ユーザープール** | ユーザーの名簿を持ち、サインアップとログインを受け付ける | 会員証を発行する受付 |
+| **JWT（ID トークン）** | ログインに成功した人に渡される、電子的な通行証 | 受付が渡す入館証 |
+| **JWT オーソライザー** | API Gateway の入口で、通行証を確かめる | 入口の守衛 |
+
+### Cognito ユーザープールとは
+
+**ユーザーの名簿と、ログインの仕組みをまとめて引き受けてくれる AWS のサービス**です。パスワードの保管、パスワードの強さの確認、確認コードのメール送信、ログイン後の通行証（トークン）の発行を、Cognito が行います。自分でパスワードを保存するプログラムを書く必要はありません。
+
+この教材では、**サインインに使う名前（ユーザー名）を、そのまま会員 ID にします**。サインアップで入力したユーザID（例: `member-0001`）が、Session2 から使っている会員の `id` になります。
+
+### サインアップと確認コード
+
+会員が自分で名簿に登録することを **サインアップ** といいます。この教材の流れは次のとおりです。
+
+```text
+① サインアップ: ユーザID・メールアドレス・パスワードを Cognito に送る
+② Cognito が、入力されたメールアドレスに確認コード（数字）を送る
+③ 確認: メールに届いたコードを入力する（本当にそのメールアドレスの持ち主かを確かめる）
+④ ログイン: ユーザID とパスワードで ID トークンを受け取る
+⑤ 会員情報の登録: ID トークンを付けて、名前・年齢・住所・電話番号を登録する（POST /）
+```
+
+③ が済むまで、そのユーザーはログインできません（`UserNotConfirmedException`）。
+
+### JWT とは
+
+JWT（ジョット、JSON Web Token）は、「この人は○○さんで、Cognito が確認済み」という内容が書かれた文字列です。3 つの部分をピリオド（`.`）でつないでいます。
+
+```text
+xxxxxxxx.yyyyyyyy.zzzzzzzz
+ヘッダー . 中身 . 署名
+```
+
+| 部分 | 入っているもの |
+|---|---|
+| ヘッダー | 署名の方式 |
+| 中身 | ユーザーの情報（クレーム）、有効期限、発行元（どのユーザープールか）、対象のアプリクライアント |
+| 署名 | 発行元（Cognito）だけが付けられる印。書き換えると合わなくなる |
+
+中身に入っている情報の 1 つ 1 つを **クレーム** といいます。この教材で使う主なクレームは次のとおりです。
+
+| クレーム | 中身 | 使う場所 |
+|---|---|---|
+| `cognito:username` | ユーザー名（= 会員 ID） | 会員 API の本人確認 |
+| `email` | メールアドレス | 会員 API の本人確認 |
+| `cognito:groups` | 入っているグループ（例: `admins`） | 管理 API の管理者確認 |
+| `iss` | 発行元（ユーザープールの URL） | JWT オーソライザー |
+| `aud` | 対象のアプリクライアント ID | JWT オーソライザー |
+| `exp` | 有効期限 | JWT オーソライザー |
+
+> **ポイント**: JWT の中身は暗号ではなく、誰でも読めます。**パスワードなどの秘密は入っていません**が、他人に見せないでください。通行証を拾った人は、有効期限が切れるまで本人としてふるまえます。
+
+### JWT オーソライザーとは
+
+**API の入口で、通行証（JWT）を確かめる、API Gateway の機能**です。確かめるのは次の 3 点です。
+
+1. **署名が正しいか**: 自分のユーザープール（Cognito）が発行したものか。書き換えられていないか
+2. **有効期限が切れていないか**（ID トークンの既定は 1 時間）
+3. **対象のアプリクライアント向けか**: この教材のアプリクライアント向けに発行されたものか
+
+3 点がそろえば Lambda に渡し、そろわなければ **401（認証されていない）** を返します。Lambda には、確かめ終わったクレームが `requestContext.authorizer.jwt.claims` として届きます。
+
+```text
+① ブラウザー ── ユーザID・パスワード ──▶ Cognito ユーザープール
+② ブラウザー ◀── ID トークン（JWT） ──── Cognito ユーザープール
+③ ブラウザー ── API 呼び出し + Authorization ヘッダー（JWT）──▶ API Gateway
+                                  │ JWT オーソライザーが確認
+                                  ▼
+                   OK → Lambda（クレーム付き） ／ NG → 401（Lambda は呼ばれない）
+```
+
+### 認証は入口で、細かい認可は Lambda で
+
+JWT オーソライザーが確かめるのは「Cognito が発行した、期限内の通行証か」までです。「**誰が** 何をしてよいか」は、Lambda がクレームを見て決めます。
+
+| 確認 | どこで | 合わないとき |
+|---|---|---|
+| 通行証が本物で期限内か | JWT オーソライザー（API Gateway） | 401 |
+| 登録する `id`・`email` が、ログインした本人のものか | 会員 API の Lambda（`check_owner`） | 403「ログインした本人の ID・メールアドレスで登録してください」 |
+| ログインした人が `admins` グループに入っているか | 管理 API の Lambda（`require_admin`） | 403「管理者のみ利用できます」 |
+
+> **401 と 403 の違い**: 401 は「あなたが誰か分からない（通行証がない・期限切れ・偽物）」、403 は「あなたが誰かは分かったが、それはできない」です。
+
+### 何がうれしいか
+
+- **ログインしていない呼び出しは Lambda に届かない**ので、Lambda の実行や DynamoDB へのアクセスが発生しません。
+- 認証の仕組みを自作せず、AWS のサービスに任せられます（パスワードの保管や確認、確認コードのメール送信を自分で書かなくてよい）。
+- Lambda は、確かめ済みのクレームを読むだけで「誰か」が分かります。署名の検証を Lambda で書く必要はありません。
+
+### 保護する範囲
+
+| API | ルート | 入口（JWT オーソライザー） | Lambda での確認 |
+|---|---|---|---|
+| 会員 API `users-api-<名前>`（Session3） | `POST /` | 必須 | 本文の `id` = `cognito:username`、本文の `email` = トークンの `email`（違えば 403） |
+| 管理 API `users-admin-api-<名前>`（Session4） | `GET /users`、`GET /users/{id}`、`PUT /users/{id}`、`DELETE /users/{id}` | 必須 | `cognito:groups` に `admins` が含まれる（なければ 403） |
+
+料理のおすすめ（[Session6](../Session6/README.md)・[Session7](../Session7/README.md)）の API には、この Session では保護を付けません。
+
+### この Session の構成
+
+```text
+会員のブラウザー（index.html）                     管理者のブラウザー（admin.html）
+   │ ① サインアップ・確認コード・ログイン              │ ① ログイン
+   ▼                                                  ▼
+             Cognito ユーザープール（users-pool-<名前>）
+             └ グループ admins（管理者だけ）
+   │ ② ID トークン                                    │ ② ID トークン
+   ▼                                                  ▼
+API Gateway（users-api-<名前>）               API Gateway（users-admin-api-<名前>）
+   │ JWT オーソライザー                               │ JWT オーソライザー
+   ▼                                                  ▼
+Lambda（users-function-<名前>）               Lambda（users-admin-function-<名前>）
+   │ 本人確認（check_owner）                          │ 管理者確認（require_admin）
+   └──────────────▶ DynamoDB（users-table-<名前>）◀──────────────┘
+```
+
+> **注意（この教材の範囲）**: ID トークンは、画面を開いている間だけ、ブラウザーのメモリに持ちます（`localStorage` などには保存しません）。有効期限（1 時間）が切れたら、もう一度ログインします。トークンの更新（リフレッシュ）は扱いません。
+
+---
+
+## 5-A. サインアップから会員情報の登録まで
+
+> API Gateway の設定を変えたら、そのたびに **ステージ `dev` にデプロイされているか** を確かめてください（3 の「ポイント」を参照）。
+
+## 1. ユーザープールを作る
+
+1. 検索欄に **Cognito** と入力して開く。リージョンが **ap-northeast-1** であることを確認する
+2. **ユーザープールを作成**（Create user pool）をクリックする
+3. 次のとおり設定して作成する
+
+   | 項目 | 設定値 |
    |---|---|
-   | 関数名 | `travel-recommendation-<名前>` |
-   | ランタイム | Python 3.12 |
-   | アーキテクチャ | x86_64 |
-   | 実行ロール | 基本的な Lambda のアクセス権限で新しいロールを作成 |
+   | アプリケーションタイプ | **シングルページアプリケーション（SPA）**（ブラウザーの JavaScript から使うため）。選択肢は「従来のウェブアプリケーション」「シングルページアプリケーション (SPA)」「モバイルアプリ」の 3 つ |
+   | アプリケーション名（アプリクライアント名） | `users-client-<名前>`（この画面で入力するのは、基本的にこの名前だけです） |
+   | サインイン識別子のオプション | **ユーザー名** だけにチェック（メールアドレス・電話番号にはチェックしない） |
+   | 自己登録（セルフサインアップ） | **有効** |
+   | サインアップに必要な属性 | **email** |
+   | リターン URL | この教材は Cognito のログイン画面を使わないので、**値は使いません**。入力が必要なら、どんな値でも構いません（例: Session1 の Amplify の URL、または `http://localhost`） |
+   | ユーザープール名（入力欄がある場合） | `users-pool-<名前>`。ウィザードがユーザープール名を自動で付けることがあります（例: `User pool - xxxxx`）。名前は手順に影響しないので、そのままで構いません |
 
-4. 関数の **コード** タブで `lambda_function.py` の初期コードをすべて削除し、このフォルダの `lambda_function.py` の内容を貼り付ける
-5. **Deploy（デプロイ）** をクリックする。ハンドラーは `lambda_function.lambda_handler` にする
-6. **設定** → **一般設定** → **編集** でタイムアウトを **1 分** にする
+> **重要**: サインイン識別子は、作成後に変えられません。**ユーザー名を選んでください**。メールアドレスだけを選ぶと、ユーザー名が自動の値になり、会員 ID として使えません（ユーザー名とメールアドレスを両方選ぶと、メールアドレスは別名になります）。間違えたときは、ユーザープールを削除して作り直してください。
+>
+> コンソールの画面は変わることがあります。上の項目名が見つからないときは、同じ働きの設定を探してください。
 
-### 環境変数 MODEL_ID を設定する
+4. 作成できたら、ユーザープールの画面で次の設定を確かめる（既定の値のままで構いません）
 
-このプログラムは、使う AI モデルを環境変数 `MODEL_ID` から読みます。設定しないと、Lambda は起動時にエラー（`KeyError: 'MODEL_ID'`）になります。
-
-1. Lambda の画面で **設定** タブ → **環境変数** → **編集**
-2. **環境変数を追加** をクリックし、次を入力する
-
-   | キー | 値 |
+   | 確かめる設定 | 正しい状態 |
    |---|---|
-   | `MODEL_ID` | `global.anthropic.claude-sonnet-4-6` |
+   | ユーザープール名 | `users-pool-<名前>`（作成時に名前が自動で付いた場合は、名前を変更できれば変更する。変更できなくても、ユーザープール ID を控えれば手順に影響はありません） |
+   | 多要素認証（MFA） | なし（この教材では使いません） |
+   | 属性の検証（サインアップ時の確認） | メールアドレスを **確認コード** で検証する（Cognito が自動でメールを送る） |
+   | メールの送信 | **Cognito でメールを送信**（Cognito の既定の送信。Amazon SES は使いません） |
+   | パスワードポリシー | Cognito の既定（8 文字以上、大文字・小文字・数字・記号を含む） |
 
-3. **保存**
+> **メールの注意**:
+> - Cognito の既定のメール送信は、**1 日あたり約 50 通** までです（AWS アカウントごと）。研修で同じ AWS アカウントを大勢で使うと、上限に達してメールが届かなくなることがあります。サインアップのやり直しは、むやみに繰り返さないでください。
+> - 確認コードのメールは `no-reply@verificationemail.com` から届きます。届かないときは **迷惑メール** のフォルダを確かめてください。
+> - 確認コードのメールの件名と本文は、既定では **英語** です（件名は「Your verification code」）。そのメールで正しい動きです。日本語に変えたいときは、任意で、ユーザープールの **メッセージテンプレート**（Message templates）で変えられます。画面の場所は、ユーザープールの設定の中から「メッセージテンプレート」を探してください（この教材では変えなくて構いません）。
 
-> **モデルを変えたいとき**: コードは変えず、この値だけを変えて保存します。変える前に、東京リージョン（`ap-northeast-1`）の Bedrock でそのモデルが使えるかを確認してください。
+5. ユーザープールの概要に出る **ユーザープール ID**（例: `ap-northeast-1_AbCdEfGhI`）を控える
 
-## 2. Lambda 実行ロールに Bedrock 権限を付ける
+> この後の手順で `users-pool-<名前>` を開くとき、名前が違う場合は、控えたユーザープール ID で探してください。
 
-1. Lambda の **設定** → **アクセス権限** を開き、実行ロール名をクリックする
-2. IAM ロールで **許可を追加** → **インラインポリシーを作成** → **JSON** を選ぶ
-3. 次のポリシーを貼り付ける
+## 2. アプリクライアントを設定する
 
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Action": "bedrock:InvokeModel",
-         "Resource": [
-           "arn:aws:bedrock:*:<アカウントID>:inference-profile/global.anthropic.claude-sonnet-4-6",
-           "arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-4-6"
-         ]
-       }
-     ]
-   }
+1 で作ったアプリクライアント（`users-client-<名前>`）を確かめ、ユーザID とパスワードで直接ログインできるようにします。
+
+1. ユーザープールの **アプリケーションクライアント**（App clients）を開き、`users-client-<名前>` を選ぶ
+2. 次を確かめる
+
+   | 項目 | 正しい状態 |
+   |---|---|
+   | クライアントシークレット | **なし**（ブラウザーで使う公開のクライアントには、シークレットを付けません） |
+
+3. **認証フロー**（Authentication flows）の **編集** を開き、「ユーザー名とパスワード（`ALLOW_USER_PASSWORD_AUTH`）」にチェックが入っている状態にして保存する（すでに入っていれば、そのままで構いません）。ほかのチェックは、そのままで構いません
+
+   | 認証フロー | 意味 |
+   |---|---|
+   | `ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード） | ユーザID とパスワードでログインする（この教材の画面と PowerShell が使う）。**チェックが必要** |
+   | `ALLOW_REFRESH_TOKEN_AUTH`（更新トークン認証） | トークンを更新する。**常に有効**と画面に出て、チェックボックスはありません（この教材では使いません） |
+
+   > 画面には、選択ベースのサインイン（`ALLOW_USER_AUTH`）、SRP、サーバー側の管理者認証（`ALLOW_ADMIN_USER_PASSWORD_AUTH`）、カスタム認証（`ALLOW_CUSTOM_AUTH`）も並びますが、この教材では触りません。高度なセキュリティ設定にある **更新トークンのローテーション** は、有効にしないでください（有効にするには `ALLOW_REFRESH_TOKEN_AUTH` を無効にする必要があります）。トークンの有効期限（ID トークン・アクセストークン 60 分 = 1 時間、更新トークン 5 日）は、既定のままにします。
+
+4. **クライアント ID**（例: `1a2b3c4d5e6f7g8h9i0j1k2l3m`）を控える
+
+### 控える値
+
+| 値 | 例 | 使う場所 |
+|---|---|---|
+| ユーザープール ID（ユーザープールの **概要** に出る） | `ap-northeast-1_AbCdEfGhI` | 3 の発行者 URL を組み立てる |
+| クライアント ID | `1a2b3c4d5e6f7g8h9i0j1k2l3m` | 3 の対象者、6 の PowerShell、7 の `config.js` |
+
+> **クライアント ID は秘密ではありません**: ブラウザーの `config.js` に書いて、誰でも見られる状態で公開します。シークレットのない公開クライアントなので、それで構いません。逆に、**秘密の値（クライアントシークレット、AWS のアクセスキーなど）は、JavaScript に絶対に書かないでください**。
+
+### 確認ポイント
+
+- [ ] ユーザープールのサインイン識別子が **ユーザー名** だけ
+- [ ] 必須の属性が `email`、自己登録が有効、メールアドレスを確認コードで検証する
+- [ ] アプリクライアントにシークレットがなく、`ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード）にチェックが入っている（更新トークン認証は常に有効で、チェック不要）
+- [ ] ユーザープール ID とクライアント ID を控えた
+
+## 3. 会員 API に JWT オーソライザーを付ける
+
+1. **API Gateway** → `users-api-<名前>` を開く
+2. 左のメニューの **認可**（Authorization）を開く
+3. ルートの一覧で **`POST /`** を選び、**オーソライザーを作成してアタッチ**（Create and attach an authorizer）をクリックする
+4. 次のとおり入力して作成する
+
+   | 項目 | 入力する値 |
+   |---|---|
+   | オーソライザーのタイプ | **JWT** |
+   | 名前 | `cognito-<名前>` |
+   | ID ソース（Identity source） | `$request.header.Authorization`（初期値のまま） |
+   | 発行者 URL（Issuer URL） | `https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>` |
+   | 対象者（Audience） | 2 で控えた **クライアント ID**（入力して **追加** を押す。下の手順を参照） |
+
+   発行者 URL の例: `https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_AbCdEfGhI`
+
+   **発行者 URL の作り方**: Cognito のコンソールに「発行者 URL」という項目はありません。ユーザープールの **概要** に出る **ユーザープール ID** を使って、自分で組み立てます。
+
+   ```text
+   https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>
    ```
 
-4. ARN 中の `<アカウントID>` を自分の AWS アカウント ID に置き換え、ポリシー名を `bedrock-invoke-model-<名前>` として作成する
+   - 概要に **トークン署名キー URL** が表示されている場合は、突き合わせに使えます。発行者 URL は、その URL の末尾の `/.well-known/jwks.json` を取った形と同じです。
+   - 入力する前に、次の 3 つを確かめてください。
+     - [ ] `https://cognito-idp.ap-northeast-1.amazonaws.com/` で始まっている（リージョンが `ap-northeast-1`）
+     - [ ] 末尾がユーザープール ID（`ap-northeast-1_` で始まる文字列）で、末尾に `/` がない
+     - [ ] ユーザープール ID の大文字・小文字が、概要の表示と同じ
 
-> このポリシーは Claude Sonnet 4.6 のグローバル推論プロファイルと、クロスリージョン先の同モデル呼び出しに限定します。推論プロファイルを使う場合は、プロファイル ARN と利用先の foundation model ARN の両方が必要です。Bedrock 側のモデル利用条件も満たしている必要があります。
+   **対象者の入れ方**: 対象者の欄に 2 で控えた **クライアント ID** を貼り付け、**追加** を押します。一覧にクライアント ID が出れば追加できています。追加しないで作成すると、画面に「オーソライザーに関連付けられた対象者がありません」と出たままで、対象者のないオーソライザーになります。
 
-## 3. Lambda 単体でテストする
+5. ルートの一覧で、`POST /` に `JWT` のオーソライザーが付いたことを確かめる
 
-1. **テスト** → **新しいイベントを作成** を選択する
-2. イベント名を `recommendation-test` にし、`test-event.json` の内容を貼り付けて保存する
-3. **テスト** を実行する
-4. `statusCode` が `200` で、本文の `answer` に日本語の提案があれば成功
+> **ポイント**:
+> - 発行者 URL の末尾に `/` を付けないでください。ユーザープール ID の大文字・小文字も、そのまま書きます。1 文字でも違うと、正しいトークンでも 401 になります。
+> - この時点から、トークンのない `POST /` は 401 になります。
+>
+> **ポイント（ステージ `dev` のデプロイ）**: ステージ `dev` の **自動デプロイ** が有効なら、保存すると数秒で反映されます（Session3 の 3-4）。**自動デプロイが無効（手動）のままだと、オーソライザーも CORS も、「デプロイ」を押すまで反映されません。** 無効のときは、オーソライザー・ルート・CORS を変えるたびに、ステージ `dev` に **デプロイ** を押してください。確かめ方は、API Gateway → `users-api-<名前>` → **ステージ** → `dev` を開き、**自動デプロイ** が有効か（手動か）を見ます。
 
-入力が不正な場合は 400、Bedrock 呼び出しで失敗した場合は 502 が返ります。失敗時は Lambda の **モニタリング** → **CloudWatch Logs** で詳細を確認してください。
+### ブラウザーだけで 401 を確かめる
 
-## 4. HTTP API を作成する
+CLI がなくても、トークンなしの `POST /` が 401 になることを、ブラウザーで確かめられます。ログインする前に、会員向けサイトのページを開き、開発者ツール（F12）の **コンソール** で次を実行します。`<API の URL>` は Session3 で控えた会員 API の URL（末尾に `/` なし）です。
 
-1. リージョンが `ap-northeast-1` のまま **API Gateway** を開く
-2. **API を作成** → **HTTP API** → **構築** を選ぶ
-3. 統合に Lambda の `travel-recommendation-<名前>` を選択し、API 名を `travel-recommendation-api-<名前>` にして作成する
-4. ルートに `POST /`（パスなし）を追加し、統合先が上記 Lambda であることを確認する
-5. ステージ名は `dev`（初期値の `$default` から書き換える）、自動デプロイを有効にして作成する
-6. ステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾の `/` は付けない
+```javascript
+fetch("<API の URL>/", {method:"POST", headers:{"Content-Type":"application/json"}, body:"{}"}).then(r => console.log(r.status)).catch(e => console.log("失敗:", e.message))
+```
 
-## 5. API の CORS を設定する
+- `401` が出れば正しい状態です。
+- `失敗: Failed to fetch` が出たときは、CORS またはステージのデプロイがまだ済んでいません。4 と、上の「ステージ `dev` のデプロイ」を確かめてください。
+- `400` が出たときは、リクエストが Lambda まで届いています。オーソライザーが付いていないか、ステージにデプロイされていません。
 
-1. API Gateway で `travel-recommendation-api-<名前>` を開き **CORS** を選ぶ
-2. 次の値を設定する
+## 4. 会員 API の CORS に `authorization` を足す
 
-   | 項目 | 値 |
+ブラウザーは、`Authorization` ヘッダーを付けた要求を送る前に、プリフライト（OPTIONS）で「このヘッダーを送ってよいか」を API に尋ねます。Session3 の 3-7 では `content-type` だけを許可したので、`authorization` を足します。
+
+1. **API Gateway** → `users-api-<名前>` → **CORS** を開き、**設定**（編集）をクリックする
+2. **許可されたヘッダー**（Access-Control-Allow-Headers）に `authorization` を追加する。ほかの値は Session3 のまま変えない
+
+   | 項目 | 設定値 |
    |---|---|
-   | 許可されたオリジン | `*`（すべてのオリジンを許可。ハンズオン用の設定） |
-   | 許可されたメソッド | `POST`, `OPTIONS` |
-   | 許可されたヘッダー | `content-type` |
-   | 認証情報 | 無効 |
+   | 許可されたオリジン | Session3 で設定した値のまま（`*` またはサイトのオリジン） |
+   | 許可されたメソッド | `POST`, `OPTIONS`（Session3 のまま） |
+   | 許可されたヘッダー | `content-type`, **`authorization`** |
+   | 認証情報 | 無効（Session3 のまま） |
 
-3. 保存する。`dev` ステージの自動デプロイが有効なら設定は自動反映される
+3. 保存する。ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** も押す（3 を参照）
 
-`*` は、どのサイトからでもこの API を呼べるようにする、ハンズオン用の設定です。**本来は、API を呼ぶサイトのドメイン（例: `https://dev.<アプリID>.amplifyapp.com`）を指定します**（[Session3 の 3-7](../Session3/README.md) を参照）。`*` のときは、認証情報を有効にできません（無効のまま）。HTTP API 側で CORS を設定するため、Lambda 側では CORS ヘッダーを追加しません。
+保存してデプロイしたあとは、プリフライトが `authorization` を許可します。ブラウザーの開発者ツールの **ネットワーク** タブで、OPTIONS の要求が `204` で返れば正しい状態です。
 
-## 6. API の URL で動作を確かめる
+> プリフライト（OPTIONS）は、API Gateway が CORS の設定に従って答えます。オーソライザーは OPTIONS には働かないので、OPTIONS のルートを追加する必要はありません。
 
-この API の URL は、PowerShell などから直接呼び出して確かめます。Session1 のサイトのおすすめ欄は、Session6 の API を使います（Session6 で設定します）。
+## 5. 会員 API の Lambda を貼り替える
 
-1. API Gateway の `travel-recommendation-api-<名前>` のステージ `dev` の URL（例: `https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev`）を控える。末尾に `/` は付けない
-2. PowerShell で、次のように呼び出す
+1. **Lambda** → `users-function-<名前>` を開く
+2. **コード** タブの `lambda_function.py` の中身をすべて削除し、`Session5/lambda_function.py` の内容を貼り付ける（先頭から末尾まで全部置き換える）
+3. **Deploy（デプロイ）** をクリックする
 
-   ```powershell
-   $api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"
-   $body = '{"prompt":"長野でそばを食べたい"}'
-   $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
-   (Invoke-RestMethod -Method Post -Uri "$api/" -ContentType "application/json; charset=utf-8" -Body $bytes).answer
-   ```
+> 環境変数 `TABLE_NAME`（`users-table-<名前>`）、実行ロール、ハンドラー（`lambda_function.lambda_handler`）は、Session2 のまま変えません。
 
-3. Bedrock からの日本語回答が表示されれば成功です
+Session2 のコードとの違いは、`check_owner` が加わったことだけです。
 
-> `config.js` の API URL はブラウザーから見える公開情報です。API キーや AWS 認証情報を JavaScript に書かないでください。この教材の API は認証されていないため、実験用の範囲で使ってください。
+- `get_claims(event)`: JWT オーソライザーが確かめたクレーム（`event["requestContext"]["authorizer"]["jwt"]["claims"]`）を取り出します。クレームがない（Lambda の画面のテストなど）ときは空です。
+- `check_owner(event, user)`: クレームがあるとき、本文の `id` がトークンの `cognito:username` と、本文の `email` がトークンの `email` と同じかを確かめます。違えば 403「ログインした本人の ID・メールアドレスで登録してください」を返します。
+- クレームがないときは確認を省くので、Session2 のテストイベント（`Session2/test-events/create-user.json`）は今までどおり動きます。
 
-## 確認ポイント
+### 5-A の 5 の確認：Lambda のテストで本人確認を確かめる（CLI なしでできます）
 
-- [ ] Lambda のテストで `statusCode: 200` が返る
-- [ ] HTTP API に `POST /`（パスなし）がある
-- [ ] API の CORS で、許可されたオリジンを `*` にした
-- [ ] PowerShell で、日本語のおすすめを取得できる
+Lambda の画面の **テスト** タブで、本人確認（`check_owner`）が働くことを確かめます。
+
+1. `users-function-<名前>` の **テスト** タブで、`Session5/test-events/create-user-other-id.json` の内容を貼り付けて実行する → 403「ログインした本人の ID・メールアドレスで登録してください」が返る
+2. `Session5/test-events/create-user-with-claims.json` の内容で実行する → 201 が返る（その `id` がすでに登録されていると 409 になります。`id` を変えて試してください）
+
+次の 6（PowerShell / AWS CLI）は、**飛ばして構いません**。7 のブラウザーでの確認が、6 の代わりになります。
+
+## 6. PowerShell で確かめる
+
+AWS CLI の `aws cognito-idp` コマンドで、サインアップからログインまでを行い、受け取った ID トークンで API を呼びます。同じ PowerShell の画面で、上から順に実行してください（画面を閉じたら、変数の設定からやり直します）。
+
+> `sign-up`・`confirm-sign-up`・`initiate-auth` の 3 つは、ログイン前の人が使う操作なので、AWS のアクセスキー（`aws configure`）の設定がなくても実行できます。
+
+### 6-1. 値を変数に入れる
+
+```powershell
+$api = "https://xxxxxxxxxx.execute-api.ap-northeast-1.amazonaws.com/dev"   # Session3 で控えた会員 API の URL
+$region = "ap-northeast-1"
+$clientId = "<クライアントID>"        # 2 で控えた値
+$user = "member-0001"                 # 会員 ID になるユーザID（英数字とハイフン）
+$email = "<自分のメールアドレス>"     # 確認コードを受け取るアドレス
+$password = 'Handson-2026!'           # 8 文字以上、大文字・小文字・数字・記号を含む
+```
+
+> パスワードには `,`（カンマ）と `$` を使わないでください。下のコマンドで、区切りや変数と間違えられます。
+
+### 6-2. トークンなしで呼ぶと 401 になる
+
+```powershell
+$body = @{ id = $user; name = "鈴木愛子"; email = $email; age = 30; address = "東京都千代田区1-1"; tel = "09012345678" } | ConvertTo-Json
+try {
+    Invoke-RestMethod -Method Post -Uri "$api/" -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+} catch {
+    [int]$_.Exception.Response.StatusCode   # 401 が出れば正しい
+    $_.ErrorDetails.Message                 # {"message":"Unauthorized"}
+}
+```
+
+### 6-3. サインアップする
+
+```powershell
+aws cognito-idp sign-up --region $region --client-id $clientId --username $user --password $password --user-attributes "Name=email,Value=$email"
+```
+
+- `UserConfirmed` が `false`、`CodeDeliveryDetails` に送り先のメールアドレス（一部が `*` で隠れたもの）が出れば成功です。
+- メールに **確認コード**（数字 6 桁）が届きます。
+
+### 6-4. 確認コードで確認する
+
+`<確認コード>` は、メールに届いた数字に置き換えます。
+
+```powershell
+aws cognito-idp confirm-sign-up --region $region --client-id $clientId --username $user --confirmation-code <確認コード>
+```
+
+- 何も表示されずに終われば成功です。
+
+> **メールがどうしても届かないとき（代わりの方法）**: Cognito の画面で、ユーザープール → **ユーザー** → `member-0001` を開き、アカウントを確認する操作（Confirm account）を行います。AWS のアクセスキーを設定済みなら、`aws cognito-idp admin-confirm-sign-up --region $region --user-pool-id <ユーザープールID> --username $user` でも確認できます。どちらも管理者の操作なので、メールアドレスの持ち主かどうかは確かめられません。研修でメールが届かないときだけ使ってください。
+
+### 6-5. ログインして ID トークンを受け取る
+
+```powershell
+$token = aws cognito-idp initiate-auth --region $region --client-id $clientId --auth-flow USER_PASSWORD_AUTH --auth-parameters "USERNAME=$user,PASSWORD=$password" --query "AuthenticationResult.IdToken" --output text
+$token.Substring(0, 20)   # eyJ で始まる長い文字列なら成功（全体は表示しない）
+```
+
+> `None` や Substring のエラーが出たら、`--query` 以降（`--query "AuthenticationResult.IdToken" --output text`）を外して実行し、表示された内容（`ChallengeName` やエラー名）を「よくあるエラー」で探してください。
+>
+> ID トークンは、有効期限（1 時間）まで本人として API を呼べる通行証です。画面共有や資料に載せないでください。
+
+### 6-6. ID トークンを付けて登録すると 201 になる
+
+`Authorization` ヘッダーに、ID トークンをそのまま入れます（この教材の画面と同じく、`Bearer` は付けません）。
+
+```powershell
+Invoke-RestMethod -Method Post -Uri "$api/" -Headers @{ Authorization = $token } -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+```
+
+- 結果に `message`（登録が完了しました）と `user` が出れば成功です（201）。
+- 2 回目は 409（この ID はすでに登録されています）になります。もう一度試すときは、Session4 の管理画面か DynamoDB の画面で会員を削除してください。
+
+### 6-7. 他人の ID で登録しようとすると 403 になる
+
+ログインしたのは `member-0001` なのに、本文の `id` を別の値にして送ります。
+
+```powershell
+$other = @{ id = "someone-9999"; name = "鈴木愛子"; email = $email; age = 30; address = "東京都千代田区1-1"; tel = "09012345678" } | ConvertTo-Json
+try {
+    Invoke-RestMethod -Method Post -Uri "$api/" -Headers @{ Authorization = $token } -ContentType "application/json; charset=utf-8" -Body ([System.Text.Encoding]::UTF8.GetBytes($other))
+} catch {
+    [int]$_.Exception.Response.StatusCode   # 403
+    $_.ErrorDetails.Message                 # ログインした本人の ID・メールアドレスで登録してください
+}
+```
+
+> 日本語が文字化けして見えるときは、PowerShell の表示の問題のことが多いです（Session3 の 3-8）。番号（403）で判断してください。
+
+### 確認ポイント
+
+- [ ] トークンなしの `POST /` が 401 になる
+- [ ] `sign-up` → メールの確認コード → `confirm-sign-up` → `initiate-auth` で ID トークンを受け取れた
+- [ ] ID トークン付きの `POST /` が 201 になる
+- [ ] 他人の ID では 403「ログインした本人の ID・メールアドレスで登録してください」になる
+
+## 7. 画面で通す（サインアップから登録まで）
+
+### 7-1. `config.js` にクライアント ID を設定する
+
+`Session1/config.js` の `window.COGNITO_CLIENT_ID` に、2 で控えたクライアント ID を設定します。`window.COGNITO_REGION` は `ap-northeast-1` のままです。ほかの値（API の URL など）はそのままです。Session3・4 で設定した `API_ENDPOINT` と `ADMIN_API_ENDPOINT` を消したり、上書きしたりしないでください。
+
+> **注意**: リポジトリの `Session1/config.js` は、API の URL が **空** になっています。S3 に置いてある（Session3・4 で `API_ENDPOINT` などを設定した）`config.js` に `COGNITO_CLIENT_ID` を足して使ってください。リポジトリの空の `config.js` をそのままアップロードすると、API の URL が消えます。
+
+```javascript
+window.COGNITO_REGION = "ap-northeast-1";
+window.COGNITO_CLIENT_ID = "1a2b3c4d5e6f7g8h9i0j1k2l3m";
+```
+
+> `COGNITO_CLIENT_ID` が空の間は、画面は Session1〜4 と同じ動き（ログインなしの登録フォームだけ）になります。値を入れると、サインアップ・確認コード・ログインの画面が出ます。
+
+### 7-2. 会員向けサイトを更新する
+
+1. Session1 の **会員向けサイトの S3 バケット** を開き、次の 4 ファイルを **すべて** バケット直下にアップロードして置き換える（`admin.html` と `admin.js` は、ここには置きません）。`config.js` だけを更新して `app.js`・`index.html`・`styles.css` を上げ忘れると、サインアップの画面が出ません
+   - `config.js`（7-1 のとおり、`API_ENDPOINT` を残したもの）
+   - `app.js`
+   - `index.html`
+   - `styles.css`
+2. Amplify の `site-<名前>` アプリを開き、ブランチ `dev` の **更新をデプロイ** を実行する（[Session1 の 3-4](../Session1/README.md)）
+3. デプロイが終わったら、ブラウザーでサイトを開き直す（画面が変わらないときは再読み込みする）
+
+サイトに反映されているファイルは、ブラウザーで確かめられます。
+
+| 開く URL | 探す文字 | 見つかれば |
+|---|---|---|
+| `<サイトの URL>/app.js` | `cognitoCall` | 新しい `app.js` が反映されている |
+| `<サイトの URL>/styles.css` | `[hidden]` | 新しい `styles.css` が反映されている |
+
+### 7-3. ブラウザーで通す
+
+6 で使った `member-0001` とは別のユーザID（例: `member-0002`）で試します。
+
+1. ページの **新規会員募集** の欄に、サインアップの画面が出ることを確かめる
+2. ユーザID・メールアドレス・パスワードを入れて **サインアップ** を押す
+3. 「メールに確認コードを送りました。コードを入力してください。」と出たら、メールに届いた確認コードを入れて **確認する** を押す（メールの件名と本文は英語で、件名は「Your verification code」です。それで正しい動きです）
+4. 「確認が完了しました。ログインしてください。」と出たら、パスワードを入れて **ログイン** を押す
+5. 会員情報の登録フォームが出る。**ユーザID** と **メールアドレス** には、ログインした人の値が入っていて、書き換えられない
+6. 名前・年齢・住所・電話番号を入れて **登録** を押す。「会員登録しました。」と出れば成功です
+7. Session4 の管理画面か DynamoDB の画面（**項目を探索**）で、`member-0002` が登録されたことを確かめる（管理画面は、5-B を始めるまでは今までどおり使えます）
+
+### 確認ポイント
+
+- [ ] `config.js` の `COGNITO_CLIENT_ID` を設定し、4 つのファイルを会員向けサイトのバケットに置き換えて、更新をデプロイした
+- [ ] 画面で、サインアップ → 確認コード → ログイン → 登録 まで通せた
+- [ ] 登録フォームのユーザID とメールアドレスが、ログインした人の値で書き換えられない
+
+---
+
+## 5-B. 管理者だけが管理 API を使えるようにする
+
+## 1. `admins` グループと管理者ユーザーを作る
+
+### 1-1. 管理者ユーザーを作る
+
+管理者も、会員と同じユーザープールのユーザーです。5-A と同じ方法（7 の画面、または 6 の `sign-up` と `confirm-sign-up`）で、管理者用のユーザーを 1 人作ります。
+
+| 項目 | 例 |
+|---|---|
+| ユーザID | `admin-0001` |
+| メールアドレス | 自分のメールアドレス（会員と同じアドレスでも構いません） |
+
+> **ポイント**: サインアップで作ると、パスワードは自分で決めたものがそのまま使えます。Cognito の画面の **ユーザーを作成** で作ることもできますが、その場合のパスワードは「仮のパスワード」になり、初回のログインでパスワードの変更（`NEW_PASSWORD_REQUIRED`）を求められます。この教材の画面はパスワードの変更に対応していないので、画面で作った場合は「よくあるエラー」の `NEW_PASSWORD_REQUIRED` の対処を行ってください。
+
+### 1-2. `admins` グループを作り、管理者を入れる
+
+1. Cognito → `users-pool-<名前>`（名前が違う場合は、控えたユーザープール ID で探す）→ **グループ**（Groups）→ **グループを作成** をクリックする
+2. グループ名に `admins` と入力して作成する（ほかの項目は空のままで構いません）
+3. 作った `admins` を開き、**ユーザーをグループに追加** で `admin-0001` を追加する
+
+> グループ名は、Lambda のコード（`ADMIN_GROUP = "admins"`）と同じ **`admins`**（小文字、最後に `s`）にします。
+>
+> グループに入ったことは、**グループに入れた後にログインして受け取ったトークン** に書かれます。入れる前に受け取ったトークンは `cognito:groups` がないままなので、ログインし直してください。
+
+## 2. 管理 API に JWT オーソライザーを付ける
+
+オーソライザーは API ごとに作ります。5-A の 3 と同じ値で、管理 API にも作ります。
+
+1. **API Gateway** → `users-admin-api-<名前>` → **認可**（Authorization）を開く
+2. **`GET /users`** を選び、**オーソライザーを作成してアタッチ** で次のとおり作成する
+
+   | 項目 | 入力する値 |
+   |---|---|
+   | オーソライザーのタイプ | **JWT** |
+   | 名前 | `cognito-<名前>` |
+   | ID ソース | `$request.header.Authorization` |
+   | 発行者 URL | `https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>`（5-A の 3 と同じ） |
+   | 対象者 | 5-A の 2 で控えた **クライアント ID**（会員と同じクライアント） |
+
+3. 残りの 3 つのルートにも、作ったオーソライザー（`cognito-<名前>`）を選んで **アタッチ** する
+
+   | メソッド | パス |
+   |---|---|
+   | GET | `/users` |
+   | GET | `/users/{id}` |
+   | PUT | `/users/{id}` |
+   | DELETE | `/users/{id}` |
+
+4. 4 つのルートすべてに `JWT` のオーソライザーが付いたことを確かめる。**1 つでも付け忘れると、そのルートはログインなしで呼べてしまいます**
+5. ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** を押す（5-A の 3 を参照）
+
+## 3. 管理 API の CORS に `authorization` を足す
+
+1. **API Gateway** → `users-admin-api-<名前>` → **CORS** を開き、編集する
+2. **許可されたヘッダー** に `authorization` を追加する。ほかの値は Session4 の 6 のまま変えない
+
+   | 項目 | 設定値 |
+   |---|---|
+   | 許可されたオリジン | 管理画面用 Amplify アプリのオリジン（`https://dev.<アプリID>.amplifyapp.com`。Session4 のまま） |
+   | 許可されたメソッド | `GET`, `PUT`, `DELETE`, `OPTIONS`（Session4 のまま） |
+   | 許可されたヘッダー | `content-type`, **`authorization`** |
+   | 認証情報 | 無効（Session4 のまま） |
+
+3. 保存する。ステージ `dev` の **自動デプロイ** が無効（手動）のときは、ステージ `dev` に **デプロイ** も押す（5-A の 3 を参照）
+
+## 4. 管理 API の Lambda を貼り替える
+
+1. **Lambda** → `users-admin-function-<名前>` を開く
+2. **コード** タブの `lambda_function.py` の中身をすべて削除し、`Session5/admin_lambda_function.py` の内容を貼り付ける（Lambda 側のファイル名は `lambda_function.py` のまま。ハンドラーも `lambda_function.lambda_handler` のまま）
+3. **Deploy（デプロイ）** をクリックする
+4. **設定** タブ → **環境変数** で、`TABLE_NAME` が `users-table-<名前>` のまま残っていることを確かめる
+
+> **環境変数 `TABLE_NAME` は、引き続き必要です**: Session4 のコードは、`TABLE_NAME` がないと起動時に `KeyError` になりました。Session5 のコードは、`TABLE_NAME` がないと `users` という名前のテーブルを探します。そのため、環境変数を消すと、エラーの出方が変わり（`ResourceNotFoundException` など）、原因が分かりにくくなります。Session4 で設定した `TABLE_NAME` = `users-table-<名前>` は、消さずにそのまま使ってください。
+
+Session4 のコードとの違いは、`require_admin` が加わったことだけです。
+
+- `get_groups(claims)`: クレームの `cognito:groups` をグループ名の一覧にします。HTTP API はこのクレームを `[admins]` のような文字列で渡すので、その形にも対応しています。
+- `require_admin(event)`: クレームがあるとき、`admins` が含まれているかを確かめ、なければ 403「管理者のみ利用できます」を返します。どのルートの処理よりも先に確かめるので、4 つのルートすべてに同じ確認が効きます。
+- クレームがないときは確認を省くので、Session4 のテストイベントは今までどおり動きます。
+
+## 5. PowerShell で確かめる
+
+5-A の 6 と同じ PowerShell の画面で続けます（閉じた場合は 6-1 の変数を入れ直します）。
+
+```powershell
+$adminApi = "https://yyyyyyyyyy.execute-api.ap-northeast-1.amazonaws.com/dev"   # Session4 で控えた管理 API の URL
+
+# ① トークンなし → 401
+try { Invoke-RestMethod -Uri "$adminApi/users" } catch { [int]$_.Exception.Response.StatusCode; $_.ErrorDetails.Message }
+
+# ② 一般の会員（member-0001）でログインし直して、そのトークン → 403「管理者のみ利用できます」
+#    5-A の 6-5 のトークンは期限（1 時間）が切れていることが多いので、6-5 と同じコマンドで取り直す
+$token = aws cognito-idp initiate-auth --region $region --client-id $clientId --auth-flow USER_PASSWORD_AUTH --auth-parameters "USERNAME=$user,PASSWORD=$password" --query "AuthenticationResult.IdToken" --output text
+try { Invoke-RestMethod -Uri "$adminApi/users" -Headers @{ Authorization = $token } } catch { [int]$_.Exception.Response.StatusCode; $_.ErrorDetails.Message }
+
+# ③ 管理者（admin-0001）でログインして、そのトークン → 200
+$adminPassword = '<admin-0001 のパスワード>'
+$adminToken = aws cognito-idp initiate-auth --region $region --client-id $clientId --auth-flow USER_PASSWORD_AUTH --auth-parameters "USERNAME=admin-0001,PASSWORD=$adminPassword" --query "AuthenticationResult.IdToken" --output text
+(Invoke-RestMethod -Uri "$adminApi/users" -Headers @{ Authorization = $adminToken }).users
+```
+
+- ① は 401、② は 403、③ は登録済みの会員の一覧が出れば成功です。
+- ② が 401 なら、トークンの期限切れです。6-5 をもう一度実行してください（上の ② の `$token = ...` の行と同じです）。③ が 401 なら、`$adminToken = ...` の行をもう一度実行してください。
+- `$token` や `$adminToken` を取る行で `None` やエラーが出たら、`--query` 以降を外して実行し、表示された内容（`ChallengeName` やエラー名）を「よくあるエラー」で探してください。
+- ③ が 403 になるときは、`admin-0001` を `admins` に入れた **後に** ログインし直したか確かめてください。
+
+## 6. 管理画面を更新して、ログインする
+
+1. `Session1/config.js` を確かめる（5-A の 7-1 で `COGNITO_CLIENT_ID` を設定済み。`ADMIN_API_ENDPOINT` は Session4 のまま）
+2. **管理画面用の S3 バケット**（`lastname-firstname-admin`）を開き、次の 4 ファイルをバケット直下にアップロードして置き換える
+   - `admin.html`
+   - `admin.js`
+   - `config.js`
+   - `styles.css`
+3. Amplify の `admin-<名前>` アプリを開き、ブランチ `dev` の **更新をデプロイ** を実行する
+4. ブラウザーで管理画面（`https://dev.<アプリID>.amplifyapp.com/admin.html`）を開く。**管理者ログイン** の欄が出る
+5. `admin-0001` でログインし、**会員一覧を取得** を押す。会員の一覧が出れば成功です。検索・更新・削除も Session4 と同じように使えます
+6. **ログアウト** を押し、今度は一般の会員（`member-0001` など）でログインして **会員一覧を取得** を押す。「取得に失敗しました: 管理者のみ利用できます」と出れば正しい動きです
+
+### 確認ポイント
+
+- [ ] `admins` グループがあり、`admin-0001` だけが入っている
+- [ ] 管理 API の 4 つのルートすべてに JWT オーソライザーが付いている
+- [ ] 管理 API の CORS の許可ヘッダーに `authorization` がある
+- [ ] Lambda `users-admin-function-<名前>` を貼り替え、環境変数 `TABLE_NAME` が残っている
+- [ ] PowerShell で、トークンなし 401、一般の会員 403、管理者 200 になる
+- [ ] 管理画面で、管理者はログインして一覧を取得でき、一般の会員は「管理者のみ利用できます」になる
+
+---
+
+## Lambda 単体でテストする（任意）
+
+Lambda の画面の **テスト** タブでも、本人確認と管理者確認を確かめられます。`Session5/test-events/` のイベントには、JWT オーソライザーが Lambda に渡すクレーム（`requestContext.authorizer.jwt.claims`）を、手で書き入れてあります。
+
+| ファイル | 使う Lambda | クレーム | 期待する結果 |
+|---|---|---|---|
+| `create-user-with-claims.json` | `users-function-<名前>` | `cognito:username` = `sample-0001`、`email` = `sample@example.com`。本文も同じ値 | 201（すでに `sample-0001` があれば 409） |
+| `create-user-other-id.json` | `users-function-<名前>` | 上と同じ。本文の `id` だけ `sample-9999` | 403「ログインした本人の ID・メールアドレスで登録してください」 |
+| `list-users-admin.json` | `users-admin-function-<名前>` | `cognito:groups` = `[admins]` | 200 |
+| `list-users-member.json` | `users-admin-function-<名前>` | `cognito:groups` = `[members]` | 403「管理者のみ利用できます」 |
+
+- 会員登録の 2 つのイベント（`create-user-with-claims.json`、`create-user-other-id.json`）には、クレーム（`requestContext.authorizer.jwt.claims`）だけが入っています。トークンの確認は API Gateway のオーソライザーが行うので、Lambda 単体のテストでは `Authorization` ヘッダーも ID トークンも要りません。
+- 本物の呼び出し（PowerShell や画面）では、5-A の 6-6 のとおり、ID トークンを `Bearer` を付けずにそのまま `Authorization` ヘッダーに入れます。
+- Lambda の画面のテストは API Gateway を通らないので、JWT オーソライザーは働きません。401 はここでは確かめられません（5-A の 6 で確かめます）。
+- クレームのないイベントでは確認を省くので、[Session2](../Session2/README.md) の `test-events/create-user.json` と、[Session4](../Session4/README.md) の `test-events/` のイベントは、今までどおり使えます。
+- `create-user-with-claims.json` で登録した `sample-0001` は、不要なら管理画面で削除してください。
+
+---
+
+## よくあるエラー
+
+| 症状・エラー | 原因 | 対処 |
+|---|---|---|
+| 401 `{"message":"Unauthorized"}` | トークンがない、期限切れ、または発行者 URL・対象者が合っていない | `Authorization` ヘッダーを付けたか確かめる。オーソライザーの発行者 URL（`https://cognito-idp.ap-northeast-1.amazonaws.com/<ユーザープールID>`、末尾 `/` なし）と、対象者（クライアント ID）を見直す。ログインし直してトークンを取り直す |
+| 画面で「ログインの有効期限が切れました。もう一度ログインしてください。」 | API が 401 を返した。ID トークンの期限（1 時間）切れが多い | もう一度ログインする。すぐに出るときは、上の 401 と同じくオーソライザーの設定を見直す |
+| 403「ログインした本人の ID・メールアドレスで登録してください」 | 本文の `id`・`email` が、トークンの `cognito:username`・`email` と違う | ログインした人の ID とメールアドレスで登録する。画面では自動で入るので、PowerShell の本文を見直す。サインイン識別子にメールアドレスだけを選んでいると、ユーザー名が自動の値になり、会員 ID と合わない（ユーザー名を選んで、ユーザープールを作り直す） |
+| 403「ログインした本人の ID・メールアドレスで登録してください」（アクセストークンを送った場合） | アクセストークンもオーソライザーは通るが、`cognito:username`・`email` のクレームがない（ユーザー名は `username`）ため、本人確認で一致しない | ID トークン（`IdToken`）を `Authorization` ヘッダーに入れる |
+| 403「管理者のみ利用できます」 | ログインした人が `admins` グループに入っていない | `admins` に入れる（グループ名のつづりも確かめる）。入れた後に **ログインし直す** |
+| `UsernameExistsException`（このユーザIDはすでに使われています） | 同じユーザID がすでにある（確認前のユーザーも含む） | 別のユーザID にする。確認コードの入力がまだなら、「確認コードを入力する」から確認する |
+| `CodeMismatchException`（確認コードが正しくありません） | 確認コードの入力違い | メールのコードを入れ直す。ユーザID も合っているか確かめる |
+| `ExpiredCodeException`（確認コードの有効期限が切れています） | コードの期限切れ、または古いコードを入力した | コードを送り直す（`aws cognito-idp resend-confirmation-code --region $region --client-id $clientId --username <ユーザID>`）。または Cognito の画面でそのユーザーを削除してから、もう一度サインアップする（同じユーザID でサインアップし直すと `UsernameExistsException` になるため） |
+| `InvalidPasswordException`（パスワードが条件を満たしていません） | パスワードポリシーに合わない | 8 文字以上で、大文字・小文字・数字・記号を含める |
+| `NotAuthorizedException`（ユーザIDまたはパスワードが正しくありません） | ユーザID かパスワードの間違い | 入れ直す。パスワードは大文字・小文字を区別します |
+| `UserNotConfirmedException`（メールアドレスの確認が済んでいません） | 確認コードの入力がまだ | 確認コードを入力する（5-A の 6-4、画面では「確認コードを入力する」） |
+| `NEW_PASSWORD_REQUIRED`（画面に「追加の認証（NEW_PASSWORD_REQUIRED）が必要ですが、この画面では対応していません。」、CLI では `ChallengeName` が返る） | Cognito の画面の **ユーザーを作成** で作ったため、パスワードが仮のまま | そのユーザーを削除して、サインアップで作り直す（5-B の 1-1）。AWS のアクセスキーを設定済みなら、`aws cognito-idp admin-set-user-password --region ap-northeast-1 --user-pool-id <ユーザープールID> --username <ユーザID> --password '<新しいパスワード>' --permanent` で、パスワードを確定させてもよい |
+| `InvalidParameterException`（USER_PASSWORD_AUTH flow not enabled for this client など） | アプリクライアントで `ALLOW_USER_PASSWORD_AUTH` が有効になっていない | 5-A の 2 の認証フローで `ALLOW_USER_PASSWORD_AUTH`（ユーザー名とパスワード）にチェックを入れて保存する |
+| 確認コードのメールが届かない | 迷惑メールに入った、またはメール送信の上限（1 日約 50 通）に達した | 迷惑メールのフォルダを見る。上限のときは翌日まで待つ。急ぐときは 5-A の 6-4 の「代わりの方法」で確認する |
+| 画面で「登録に失敗しました: Failed to fetch」「取得に失敗しました: Failed to fetch」 | ① CORS で `authorization` ヘッダーを許可していないため、プリフライトで止まった。または ② ステージ `dev` が手動デプロイ（自動デプロイが無効）で、変更がデプロイされていない | 両方を確かめる。会員 API（5-A の 4）・管理 API（5-B の 3）の許可ヘッダーに `authorization` を足し、ステージ `dev` に **デプロイ** を押す（自動デプロイの確認は 5-A の 3）。`config.js` の URL も確かめる |
+| トークンなしの `POST /`（5-A の 3 のコンソールでの確認など）が 401 ではなく 400 になる（Lambda まで届いている） | オーソライザーが `POST /` に付いていない、またはステージ `dev` にデプロイされていない | 5-A の 3 でルートに `JWT` のオーソライザーが付いているか確かめ、ステージ `dev` に **デプロイ** する |
+| 画面にサインアップ・ログインが出ず、登録すると「登録に失敗しました: Unauthorized」 | `config.js` の `COGNITO_CLIENT_ID` が空（Session1〜4 と同じ動き）か、新しい `config.js` がサイトに反映されていない | 5-A の 7-1 で設定し、S3 に置き換えて Amplify で **更新をデプロイ** してから、再読み込みする |
+| `config.js` を更新したのに、サインアップの画面が出ない | `app.js`・`index.html`・`styles.css` をアップロードしていない（または Amplify の再デプロイ・キャッシュが原因） | 4 ファイルすべてをアップロードし、Amplify で **更新をデプロイ** する。5-A の 7-2 の表のとおり、`app.js` と `styles.css` が新しいかを確かめる |
+| 確認コード・ログイン・登録の画面が、すべて同時に表示される | `styles.css` が新しくなっていない | `styles.css` を S3 に置き換え、Amplify で **更新をデプロイ** する。`<サイトの URL>/styles.css` に `[hidden]` があるか確かめる |
+| 管理画面にログイン欄が出ず、「取得に失敗しました: Unauthorized」 | 管理画面用のバケットの `config.js` が古い | 5-B の 6 で、`config.js` を管理画面用のバケットにも置き換えて、`admin-<名前>` で **更新をデプロイ** する |
+| 500「サーバー内部でエラーが発生しました」 | Lambda の内部エラー（テーブル名の間違いなど） | Lambda の CloudWatch Logs を見る。環境変数 `TABLE_NAME` が `users-table-<名前>` か確かめる |
+
+---
 
 ## 片付け
 
-1. API Gateway の `travel-recommendation-api-<名前>` を削除する
-2. Lambda の `travel-recommendation-<名前>` を削除する
-3. IAM に作成された実行ロールを削除する（他の関数で共有していないことを確認）
+Cognito のユーザープールは、少人数・少回数の利用なら無料の範囲に収まることが多いですが、会員の個人情報（メールアドレス）を持っているので、使い終わったら削除してください。
 
-Bedrock への呼び出しは従量課金です。使い終わったら API を削除し、不要な呼び出しが続かないようにしてください。
+**削除するのは、すべての Session（Session6・7 で会員向けサイトを使う場合も含む）が終わってから** です。ユーザープールを先に削除すると、ログインできなくなり、会員登録（`POST /`）が 401 で失敗します。Session3・4 の片付けと同じ時期に、まとめて行ってください。
 
-Bedrock API は認証されないため、CORS と API URL を公開範囲に注意して管理してください。
+次の順番で行います。
+
+1. **オーソライザーを外す**: API Gateway の `users-api-<名前>`・`users-admin-api-<名前>` で、各ルートからオーソライザーを外し、オーソライザーを削除する
+   - すぐに Session3・Session4 の片付けで **API ごと削除する場合は、この手順は省略できます**（オーソライザーは API と一緒に消えます）
+   - API を残す場合、オーソライザーを外すと、その API はまたログインなしで呼べる状態に戻ります。外したら、早めに API を削除してください
+2. **ユーザープールを削除する**（すべての Session が終わってから）: Cognito → `users-pool-<名前>`（名前が違う場合は、控えたユーザープール ID で探す）を選び、**削除** する。ユーザー・グループ（`admins`）・アプリクライアントも一緒に消えます
+   - 削除保護（Deletion protection）が有効で削除できないときは、ユーザープールの設定で削除保護を無効にしてから削除する
+   - ドメインがあるため削除できないと表示されたときは、先にドメインを削除する
+3. 管理 API・管理画面・Lambda は [Session4 の片付け](../Session4/README.md)、会員 API・会員向けサイト・Lambda・DynamoDB は [Session3 の片付け](../Session3/README.md) の手順で削除する（Session3・4 の案内どおり、すべての Session が終わってから）
+
+> オーソライザーを残したままユーザープールだけを削除すると、その API はすべて 401 になります（安全側に止まります）。続けて Session3・4 の片付けで API を削除してください。
+
+## 注意事項
+
+- ID トークンは、ブラウザーのメモリにだけ持ちます。画面を閉じたり、再読み込みしたりすると、もう一度ログインが必要です。
+- トークンの更新（リフレッシュトークン）は扱いません。期限（1 時間）が切れたら、ログインし直します。
+- クライアント ID は公開してよい値です。**クライアントシークレット・AWS のアクセスキー・パスワードなどの秘密は、JavaScript や `config.js` に絶対に書かないでください**。ブラウザーに送ったものは、誰でも読めます。
+- 研修では、実在の個人情報を登録しないでください。
+
+## 次へ
+
+[Session6](../Session6/README.md) に進んでください。Amazon Bedrock で料理のおすすめを生成します。

@@ -12,6 +12,22 @@
     </header>
 
     <main>
+        <section id="loginSection" hidden>
+            <h2>管理者ログイン</h2>
+            <form id="loginForm">
+                <label for="loginUsername">ユーザID</label>
+                <input id="loginUsername" type="text" name="username" autocomplete="username" required><br>
+
+                <label for="loginPassword">パスワード</label>
+                <input id="loginPassword" type="password" name="password" autocomplete="current-password" required><br>
+
+                <p><button type="submit">ログイン</button></p>
+                <p id="loginStatus" aria-live="polite"></p>
+            </form>
+        </section>
+
+        <p id="logoutArea" hidden><button type="button" id="logoutButton">ログアウト</button></p>
+
         <section id="auth">
             <h2>会員の一覧</h2>
             <p>登録済みの会員を取得します。個人情報が表示されるため、画面を他の人に見せないでください。</p>

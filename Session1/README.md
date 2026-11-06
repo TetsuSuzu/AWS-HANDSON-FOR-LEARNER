@@ -37,13 +37,13 @@
 | ファイル名 | 用途 |
 |---|---|
 | `index.html` | ウェブサイトのメインページ（HTML。S3 にアップロードする） |
-| `app.js` | 会員登録と料理のおすすめの動き（JavaScript。S3 にアップロードする） |
+| `app.js` | 会員登録と料理のおすすめの動き（JavaScript。S3 にアップロードする）。Session5 で `COGNITO_CLIENT_ID` を設定すると、サインアップとログインの画面も出る |
 | `admin.html` | 管理者用の会員管理画面（Session4 で使う。**別の S3 バケットと別の Amplify アプリ** に置くため、この Session ではアップロードしない） |
-| `admin.js` | 会員管理画面の動き（JavaScript。`admin.html` と同じく Session4 で使う） |
+| `admin.js` | 会員管理画面の動き（JavaScript。`admin.html` と同じく Session4 で使う）。Session5 で `COGNITO_CLIENT_ID` を設定すると、管理者のログインが必要になる |
 | `styles.css` | ウェブサイトのデザイン設定 |
 | `photo1.png` | おすすめ風景①の画像（かぐらスキー場） |
 | `photo2.png` | おすすめ風景②の画像（富津海岸から望む富士山） |
-| `config.js` | 会員 API・管理 API・Bedrock API のエンドポイント（Session3・4・6 で設定する）。会員向けサイトと管理画面の両方に置く |
+| `config.js` | 会員 API・管理 API・料理のおすすめ API のエンドポイント（Session3・4・7 で設定する）と、Cognito の設定 `COGNITO_REGION`・`COGNITO_CLIENT_ID`（Session5 で設定する）。会員向けサイトと管理画面の両方に置く |
 
 ---
 
@@ -91,7 +91,7 @@
    - `config.js`
 4. **「アップロード」** をクリック
 
-> 6 ファイルすべてが「成功しました」と表示されれば OK です。フォルダは作らず、バケットの直下に置きます。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session6 の設定後に使えます。
+> 6 ファイルすべてが「成功しました」と表示されれば OK です。フォルダは作らず、バケットの直下に置きます。`admin.html` と `admin.js` は、ここではアップロードしません（Session4 で別のバケットに置きます）。Session1 の時点では `config.js` の API URL は空なので、会員登録は Session3、料理のおすすめは Session7 の設定後に使えます。
 
 ---
 
@@ -148,7 +148,7 @@ S3 のファイルを置き換えただけでは、公開中のサイトは変�
 
 ## 次へ
 
-S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケットと別のアプリ）は Session4、料理のおすすめ機能は Session6 で設定します。
+S3 バケット名と公開 URL を控え、[Session2](../Session2/README.md) に進んでください。会員登録フォームの API 接続は Session3、会員管理画面（別のバケットと別のアプリ）は Session4、料理のおすすめ機能は Session7 で設定します。
 
 > ハンズオン終了後は、Amplify のアプリを削除し、S3 バケットを空にして削除してください。公開したままのサイトを不要なまま残さないようにします。
 
@@ -233,11 +233,15 @@ https://dev.d1a2b3c4d5e6f7.amplifyapp.com
 ```javascript
 window.API_ENDPOINT = "";
 window.SEARCH_API_ENDPOINT = "";
+window.ADMIN_API_ENDPOINT = "";
+window.COGNITO_REGION = "ap-northeast-1";
+window.COGNITO_CLIENT_ID = "";
 ```
 
 - `window.` を付けると、ほかのファイル（`app.js`）からも値を読めるようになります。
 - `""` は「まだ設定していない」という意味です。空のままだと、画面に「API URL は Session3 で設定します」と表示されます。
-- 設定する値は URL です。書き換え方は、[Session3 の 3-6](../Session3/README.md) で、URL の書き方を確認してください。
+- `COGNITO_REGION` と `COGNITO_CLIENT_ID` は、[Session5](../Session5/README.md) で Cognito を作ってから設定します。`COGNITO_CLIENT_ID` が空のあいだは、サインアップとログインの画面は出ません（Session3・4 の画面のままです）。
+- API の設定値は URL です。書き換え方は、[Session3 の 3-6](../Session3/README.md) で、URL の書き方を確認してください。
 
 ### app.js（ページの動き・JavaScript）
 
@@ -306,4 +310,4 @@ header {
 
 ### AI おすすめ機能が動かない
 
-- `index.html` は書き換えず、Session6 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session6 で設定します」と表示されるのが正常です
+- `index.html` は書き換えず、Session7 で `Session1/config.js` の `window.SEARCH_API_ENDPOINT` に料理のおすすめの API の URL を設定します。このセッションの時点では、おすすめ欄は「Session7 で設定します」と表示されるのが正常です

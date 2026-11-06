@@ -186,7 +186,7 @@ zip で入手した人も、あとから git に切り替えると、次回か�
 - [ ] `Session2` フォルダ（`lambda_function.py` を含む）
 - [ ] `Session3` フォルダ（`README.md` を含む）
 - [ ] `Session4` フォルダ（`lambda_function.py` を含む）
-- [ ] `Session5` フォルダ（`lambda_function.py`、`schema.sql` を含む）
+- [ ] `Session5` フォルダ（`README.md`、`lambda_function.py`、`admin_lambda_function.py` を含む）
 - [ ] `Session6` フォルダ（`lambda_function.py` を含む）
 - [ ] `Session7` フォルダ（`lambda_function.py`、`shops.txt` を含む）
 - [ ] `README.md`（教材の全体案内）

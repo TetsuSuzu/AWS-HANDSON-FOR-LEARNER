@@ -27,9 +27,10 @@ Issues はリポジトリに関する **タスク・バグ・改善要望** を�
 | `session2` | 黄 | Session2（Lambda + DynamoDB）に関するタスク |
 | `session3` | 赤 | Session3（API Gateway HTTP API + CORS）に関するタスク |
 | `session4` | 紫 | Session4（会員管理画面）に関するタスク |
-| `session5` | 桃 | Session5（Aurora）に関するタスク |
+| `session5` | 桃 | Session5（Cognito）に関するタスク |
 | `session6` | 緑 | Session6（Amazon Bedrock）に関するタスク |
 | `session7` | 橙 | Session7（店リストの tool_use）に関するタスク |
+| `session8` | 茶 | Session8（Aurora）に関するタスク |
 | `docs` | 紺 | 手順書・ドキュメントの改善 |
 
 ### 登録済みのIssue一覧
@@ -101,6 +102,7 @@ gh project item-add 4 \
 | Session2 | DynamoDB/Lambda 手順、`lambda_function.py`、Lambda テストイベント |
 | Session3 | HTTP API、ステージ、CORS、サイト接続手順 |
 | Session4 | 会員管理画面（`admin.html`、`admin.js`。別バケットと別の Amplify アプリに置く）、管理 API の Lambda、テストイベント |
+| Session5 | Cognito（サインアップとログイン）、会員 API・管理 API の Lambda（本人確認・管理者確認）、テストイベント、単体テスト |
 
 コードを変更するときは、手順書の例・セッション内のファイル・テストイベントを一緒に確認してください。Gist を補助的に使う場合も、リポジトリ内のファイルを正本として同期します。
 
